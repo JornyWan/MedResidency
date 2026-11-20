@@ -19,7 +19,7 @@ thing next year. A change that alters the ms-swift arguments of an existing task
 ## Setting up
 
 ```bash
-git clone <repository URL> && cd medresidency
+git clone https://github.com/JornyWan/MedResidency.git && cd MedResidency
 pip install -e ".[dev]"
 pytest
 ```
