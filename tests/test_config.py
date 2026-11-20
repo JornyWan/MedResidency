@@ -7,7 +7,7 @@ from medresidency import config
 from medresidency.config import ConfigError
 
 TASKS = ["cxr_report", "cxr_report_vqa", "med_vqa", "modality_experts"]
-METHODS = ["adaopd", "chord", "chord_phi", "gkd", "grpo", "offline_kd", "opd", "sft", "two_stage"]
+METHODS = ["chord", "chord_phi", "gkd", "grpo", "offline_kd", "opd", "sft", "two_stage"]
 
 
 def test_available():
@@ -20,15 +20,14 @@ def test_layers_in_order(tmp_path):
     assert cfg["train"]["lr"] == 1e-6 and cfg["train"]["steps"] == 300  # task over defaults; defaults kept
     assert cfg["run"]["name"] == "med_vqa_opd_s42"
     # the task's block for a method
-    assert config.load("cxr_report_vqa", "adaopd")["method"]["measure_tags"] == ["unirg"]
     assert config.load("cxr_report_vqa", "grpo")["train"]["per_device_batch"] == 2
     # a recipe over the task, key=value over the recipe
     recipe = tmp_path / "mine.yaml"
-    recipe.write_text("task: med_vqa\nmethod: {name: adaopd, tau: 0.5}\ntrain: {lr: 2e-6}\n")
+    recipe.write_text("task: med_vqa\nmethod: {name: chord, peak: 0.5}\ntrain: {lr: 2e-6}\n")
     cfg = config.load(recipe=str(recipe))
-    assert (cfg["method"]["tau"], cfg["train"]["lr"], cfg["run"]["name"]) == (0.5, 2e-6, "mine_s42")
-    cfg = config.load(recipe=str(recipe), overrides=["method.tau=0", "run.seed=3", "train.lr=1e-5"])
-    assert (cfg["method"]["tau"], cfg["train"]["lr"], cfg["run"]["name"]) == (0, 1e-5, "mine_s3")
+    assert (cfg["method"]["peak"], cfg["train"]["lr"], cfg["run"]["name"]) == (0.5, 2e-6, "mine_s42")
+    cfg = config.load(recipe=str(recipe), overrides=["method.peak=0", "run.seed=3", "train.lr=1e-5"])
+    assert (cfg["method"]["peak"], cfg["train"]["lr"], cfg["run"]["name"]) == (0, 1e-5, "mine_s3")
 
 
 def test_recipe_without_method_is_named_after_the_method(tmp_path):
@@ -43,10 +42,10 @@ def test_scientific_notation_is_a_number():
     assert isinstance(config.load("cxr_report", "opd")["train"]["lr"], float)
 
 
-@pytest.mark.parametrize("override", ["train.learning_rate=1e-6", "method.tua=0.5", "trian.lr=1", "run.sed=2"])
+@pytest.mark.parametrize("override", ["train.learning_rate=1e-6", "method.paek=0.5", "trian.lr=1", "run.sed=2"])
 def test_unknown_keys_are_errors(override):
     with pytest.raises(ConfigError, match="unknown configuration keys"):
-        config.load("cxr_report", "adaopd", overrides=[override])
+        config.load("cxr_report", "chord", overrides=[override])
 
 
 def test_errors():

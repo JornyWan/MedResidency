@@ -9,12 +9,16 @@ import medresidency
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.fixture(scope="module")
-def check_release():
-    spec = importlib.util.spec_from_file_location("check_release", ROOT / "scripts" / "check_release.py")
+def load_script(name):
+    spec = importlib.util.spec_from_file_location(name, ROOT / "scripts" / f"{name}.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+@pytest.fixture(scope="module")
+def check_release():
+    return load_script("check_release")
 
 
 def test_release_check_reports_what_must_not_be_published(check_release, tmp_path):
@@ -61,3 +65,12 @@ def test_one_version_everywhere():
         ("CHANGELOG.md", rf"^## {version}\b"),
     ):
         assert re.search(line, (ROOT / name).read_text(), re.M), name
+
+
+def test_benchmark_figure_matches_the_tables():
+    plot = load_script("plot_benchmark")
+    rows = plot.read_rows()
+    assert [row["name"] for row in rows if row["reference"]] == ["Teacher", "Student before training"]
+    assert all(len(row["cells"]) == len(plot.PANELS) for row in rows)
+    for theme in plot.THEMES:
+        assert plot.target(theme).read_text() == plot.draw(theme), "run python scripts/plot_benchmark.py"

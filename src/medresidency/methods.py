@@ -200,9 +200,6 @@ def opd(run: Run) -> list[Stage]:
     stage = run.opd("train", run.train["steps"], run.out)
     if run.method["repetition_penalty"] is not None:
         stage.args["repetition_penalty"] = run.method["repetition_penalty"]
-    if run.method["monitor_gap"]:
-        stage.args["external_plugins"] = [str(PLUGINS / "adaopd_plugin.py")]
-        stage.env["MEDRES_ADAOPD_MODE"] = "monitor"
     return [stage]
 
 
@@ -248,31 +245,6 @@ def two_stage(run: Run) -> list[Stage]:
         stages.append(stage1)
         ckpt = f"{stage1.output_dir}/checkpoint-{first}"
     return [*stages, run.opd("stage2", total - first, run.out, model=ckpt)]
-
-
-@register("adaopd")
-def adaopd(run: Run) -> list[Stage]:
-    m = run.method
-    if m["signal"] not in ("lang", "kl"):
-        raise ConfigError(f"method.signal={m['signal']!r} must be lang or kl")
-    unknown = sorted(set(m["measure_tags"]) - set(run.teachers))
-    if unknown:
-        raise ConfigError(f"method.measure_tags {unknown} are not teachers of this run ({', '.join(run.teachers)})")
-    stage = run.opd("train", run.train["steps"], run.out)
-    # the schedule arguments are those of CHORD; the plugin replaces the schedule by the measured mu
-    stage.args.update(run.replay(run.train["steps"], 1.0, 0.0))
-    stage.args["external_plugins"] = [str(PLUGINS / "adaopd_plugin.py")]
-    stage.env.update(
-        MEDRES_ADAOPD_MODE="control",
-        MEDRES_ADAOPD_TAU=str(m["tau"]),
-        MEDRES_ADAOPD_EMA=str(m["ema"]),
-        MEDRES_ADAOPD_TAGS=",".join(m["measure_tags"]),
-        MEDRES_ADAOPD_FRESH="1" if m["fresh_tokens"] else "0",
-        MEDRES_ADAOPD_SIGNAL=m["signal"],
-    )
-    if m["gap0"] is not None:
-        stage.env["MEDRES_ADAOPD_GAP0"] = str(m["gap0"])
-    return [stage]
 
 
 @register("grpo")

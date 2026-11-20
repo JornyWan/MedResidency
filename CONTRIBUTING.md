@@ -39,12 +39,12 @@ python scripts/check_release.py
 
 Continuous integration runs the same checks.
 
-Code that runs on a GPU (generation, the gap probe, the ms-swift plugins, the reward server) is not covered by the
+Code that runs on a GPU (generation, the ms-swift plugins, the reward server) is not covered by the
 tests. If you touch it, run it and say in the pull request what you ran. A few steps are usually enough to see that
 a training path still works:
 
 ```bash
-medres train --task med_vqa --method adaopd --name smoke_adaopd train.steps=4 train.save_steps=2
+medres train --task med_vqa --method opd --name smoke_opd train.steps=4 train.save_steps=2
 ```
 
 ## What a contribution consists of

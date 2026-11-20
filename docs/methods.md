@@ -13,7 +13,6 @@ each method optimizes, which files and servers it needs, and which keys it has. 
 | [Two-stage](#two-stage) | `two_stage` | `data.teacher_outputs`, then `data.prompts` | in stage 2 | 2 |
 | [CHORD](#chord) | `chord` | `data.prompts` and `data.teacher_outputs` | yes | 1 |
 | [CHORD-φ](#chord-φ) | `chord_phi` | `data.prompts` and `data.teacher_outputs` | yes | 1 |
-| [AdaOPD](#adaopd) | `adaopd` | `data.prompts` and `data.teacher_outputs` | yes | 1 |
 | [GRPO](#grpo) | `grpo` | `data.prompts` with a `solution` field | – | 1 |
 
 Three kinds of training file appear in the table. *Prompts* are questions with an image and no answer. *Labels* are
@@ -74,10 +73,6 @@ With several teachers, each row is scored by the teacher named in its `teacher_t
 | Key | Default | Meaning |
 |:--|:--|:--|
 | `method.repetition_penalty` | `null` | repetition penalty of the student's sampling, a common fix for looping |
-| `method.monitor_gap` | `false` | log AdaOPD's language gap at every step without acting on it |
-
-`monitor_gap` costs one more teacher pass per step. It shows how the gap develops in a run that does nothing about
-it.
 
 ## GKD
 
@@ -135,7 +130,11 @@ The weight μ follows a schedule fixed in advance, a cosine from `peak` to `vall
 | `method.valley` | `0.0` | μ after the decay |
 | `method.decay_steps` | `null` | length of the decay; `null` means `train.steps` |
 
-A constant weight is `method.peak=0.27 method.valley=0.27`.
+A constant weight is `method.peak=0.3 method.valley=0.3`.
+
+Several other methods are points of this family: offline KD is μ = 1 throughout, OPD is μ = 0, and the two-stage
+recipe switches from 1 to 0 at a fixed step. The [benchmark](../benchmarks/README.md#variants-of-opd-and-chord)
+compares a few schedules under one budget.
 
 ## CHORD-φ
 
@@ -150,69 +149,6 @@ sure or far off, and large in between.
 | Key | Default | Meaning |
 |:--|:--|:--|
 | `method.mu` | `0.1` | the constant weight of the SFT term |
-
-## AdaOPD
-
-```bash
-medres train --task cxr_report --method adaopd
-```
-
-AdaOPD uses the same mixture as CHORD, but it measures μ at every step where CHORD schedules it.
-
-The observation behind it: a teacher's score of a student token has two parts. Scoring the same response a second
-time *without the image* separates them:
-
-```
-A_t = [log p_T(y_t | x, y_<t) − log p_T(y_t | no image, y_<t)]      visual evidence
-    − [log p_S(y_t | x, y_<t) − log p_T(y_t | no image, y_<t)]      language gap
-```
-
-The visual evidence says whether the image supports the token. The language gap says how differently student and
-teacher write, whatever the image shows. When the gap is large, for example a general student facing a teacher that
-writes in the register of radiology reports, it dominates the advantage, and OPD mostly pushes the student towards
-the teacher's wording along its own, still foreign, samples. That is the regime in which OPD collapsed into
-repetition in the benchmark. SFT on the teacher's outputs closes the gap directly.
-
-AdaOPD therefore sets the weight of the SFT term from the measured gap `g_s` of step `s`:
-
-```
-μ_s = clip((EMA(g_s) − τ) / max(g_0 − τ, 1), 0, 1)
-```
-
-- `g_s` is the mean language gap over the *fresh* tokens of the step's samples. A token is fresh unless it
-  completes a 4-gram that already occurred in the same response; a student that has begun to repeat itself would
-  otherwise hide its gap behind tokens both models find predictable.
-- `g_0` is the gap of the first step. Training starts at μ = 1 when that gap is at least one nat above τ.
-- τ is the threshold, in nats. Once the smoothed gap is below it, the step is pure OPD.
-
-A student that starts close to its teacher (`g_0 ≤ τ`) trains as plain OPD for as long as its gap stays below τ. A
-student that starts far away begins with SFT on the teacher's outputs and moves to OPD as fast as its own gap
-closes.
-
-| Key | Default | Meaning |
-|:--|:--|:--|
-| `method.tau` | `1.0` | the threshold τ. Select it on validation data ([benchmark](../benchmarks/README.md#selecting-τ)) |
-| `method.ema` | `0.9` | smoothing of the gap across steps; `0` uses the gap of the current step |
-| `method.measure_tags` | `[]` | measure the gap on the rows of these teachers only; empty means all |
-| `method.fresh_tokens` | `true` | `false` measures the gap on all tokens |
-| `method.signal` | `lang` | `kl` measures the gap to the teacher *with* the image instead (an ablation) |
-| `method.gap0` | `null` | the normalizer `g_0`; `null` means the gap of the first step |
-
-**Several teachers.** One μ is shared by the whole step. Only teachers that are far from the student should drive
-it and be replayed: `measure_tags` names them, and `data.teacher_outputs` holds their outputs only. The built-in
-tasks set both in their `overrides.adaopd` block (the report teacher in `cxr_report_vqa`; CT, MRI and ultrasound in
-`modality_experts`). For your own teachers, `medres probe gap` measures the initial gap of a pair on one GPU
-([evaluation.md](evaluation.md#the-gap-probe)).
-
-**Cost.** One more teacher pass per step, for the image-free score. The teacher server is the same; no second
-copy of the teacher is loaded.
-
-**Logging.** `logging.jsonl` gets `lang_gap`, `visual_evidence` and `adaopd_mu` at every step. When a run is
-resumed, the smoothed gap and `g_0` are restored from that file.
-
-The other methods are points of the same family: offline KD is μ = 1 throughout, OPD is μ = 0, two-stage switches
-from 1 to 0 at a fixed step, and CHORD follows a fixed curve. The
-[ablations](../benchmarks/README.md#ablations-of-adaopd) compare these schedules under one budget.
 
 ## GRPO
 

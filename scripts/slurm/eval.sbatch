@@ -9,7 +9,7 @@
 # Evaluate one checkpoint on the test sets of a task (generation with vLLM, then scoring). Everything after the script
 # name goes to `medres eval run`:
 #
-#   sbatch -p <partition> scripts/slurm/eval.sbatch --task cxr_report --model runs/cxr_report_adaopd_s42/checkpoint-300
+#   sbatch -p <partition> scripts/slurm/eval.sbatch --task cxr_report --model runs/cxr_report_gkd_s42/checkpoint-300
 #   sbatch -p <partition> scripts/slurm/eval.sbatch --task cxr_report --model runs/... --green   # also GREEN (7B judge)
 #
 # Report tasks need MEDRES_METRICS_PYTHON (scripts/install_metrics_env.sh). Evaluate the checkpoints you compare on

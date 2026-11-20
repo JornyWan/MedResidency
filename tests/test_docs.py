@@ -85,7 +85,7 @@ def test_tool_options_exist():
     package = Path(cli.__file__).parent
     shown = set()
     for page, line in commands():
-        for group, tool, rest in re.findall(r"medres (data|eval|probe|stats) (\S+)([^#|&;]*)", line):
+        for group, tool, rest in re.findall(r"medres (data|eval|stats) (\S+)([^#|&;]*)", line):
             assert tool in cli.TOOLS[group], f"{page}: `{line}`"
             source = (package / (cli.TOOLS[group][tool][0].replace(".", "/") + ".py")).read_text()
             for option in re.findall(r" (--[\w-]+)", rest):

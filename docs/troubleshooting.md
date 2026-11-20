@@ -106,13 +106,14 @@ checkpoints ([concepts.md](concepts.md#resuming)). Free the space and submit the
 **All responses reach the response limit** (`completions/clipped_ratio` close to 1 in `logging.jsonl`)
 
 This is not a software failure. The student has collapsed into repetition, which is what plain OPD does when student
-and teacher start far apart. Measure the pair with `medres probe gap`
-([evaluation.md](evaluation.md#the-gap-probe)) and see [methods.md](methods.md#adaopd).
+and teacher start far apart. `gkd`, `chord` and `two_stage` largely avoid it on the report task
+([benchmark](../benchmarks/README.md#report-generation)), and the same page lists
+[what was tried on OPD itself](../benchmarks/README.md#variants-of-opd-and-chord).
 
 **The job was cut by the time limit or preempted**
 
-Submit the same command again with `run.resume=true`. The last checkpoint holds the optimizer state, finished stages
-are skipped, and AdaOPD restores its controller from `logging.jsonl`. At most `train.save_steps` steps are repeated.
+Submit the same command again with `run.resume=true`. The last checkpoint holds the optimizer state and finished
+stages are skipped. At most `train.save_steps` steps are repeated.
 
 ## Evaluation
 

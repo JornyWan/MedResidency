@@ -20,7 +20,7 @@ train:
   lr: 5.0e-6                 # constant, no warm-up
   sequences_per_step: 64     # sequences per optimizer step; gradient accumulation is derived from it
   per_device_batch: 4
-  replay_per_device_batch: 4 # batch of the SFT term of CHORD, CHORD-phi and AdaOPD
+  replay_per_device_batch: 4 # batch of the SFT term of CHORD and CHORD-phi
   max_completion: 512        # response limit in tokens
   prompt_budget: 2048        # max_length = max_completion + prompt_budget
   freeze_vision: true

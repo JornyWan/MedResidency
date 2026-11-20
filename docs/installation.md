@@ -5,7 +5,7 @@ MedResidency has three parts with different requirements. Install only what you 
 | Part | Needed for | Install |
 |:--|:--|:--|
 | Core | `medres list`, `--dry-run`, `--print-config`, `medres eval vqa`, `medres stats`, the tests | `pip install -e .` |
-| Training environment | `medres train`, `medres data`, `medres eval generate`, `medres probe gap` | `scripts/install_train_env.sh` |
+| Training environment | `medres train`, `medres data`, `medres eval generate` | `scripts/install_train_env.sh` |
 | Metrics environment | report metrics and the report reward of GRPO | `scripts/install_metrics_env.sh` |
 
 Training and report scoring cannot share an environment: RadEval needs a newer `transformers` than ms-swift accepts.
@@ -113,7 +113,7 @@ With the defaults everything lives under the directory you start `medres` from, 
 ## Checking the installation
 
 ```bash
-medres train --task med_vqa --method adaopd --dry-run     # core: prints the commands of a run
+medres train --task med_vqa --method opd --dry-run        # core: prints the commands of a run
 python -m pytest -q                                       # core with ".[dev]": the test suite, CPU only
 pip list 2>/dev/null | grep -i -E '^(ms-swift|vllm|torch|transformers) '          # training environment
 ```
@@ -125,7 +125,7 @@ servers use the other two. This is what the benchmark ran on, with 48 GB cards (
 cards for the 4B student. `hardware.gpus` and `hardware.teacher_gpus` change the layout
 ([concepts.md](concepts.md#gpu-layout)); only the default layout has been run at scale.
 
-Evaluation and the gap probe take one GPU. Scores of the same checkpoint differ slightly between GPU types, so
+Evaluation takes one GPU. Scores of the same checkpoint differ slightly between GPU types, so
 evaluate the checkpoints you want to compare on the same type.
 
 A 300-step run of a 2B student writes up to 80 GB of checkpoints while it trains
@@ -140,8 +140,8 @@ script name to `medres`:
 mkdir -p logs
 export MEDRES_ENV=/path/to/envs/medres
 
-sbatch -p <partition> scripts/slurm/train.sbatch --task cxr_report --method adaopd --seed 42
-sbatch -p <partition> scripts/slurm/eval.sbatch --task cxr_report --model runs/cxr_report_adaopd_s42/checkpoint-300
+sbatch -p <partition> scripts/slurm/train.sbatch --task cxr_report --method gkd --seed 42
+sbatch -p <partition> scripts/slurm/eval.sbatch --task cxr_report --model runs/cxr_report_gkd_s42/checkpoint-300
 ```
 
 `teacher_outputs.sbatch` is an array job that writes a teacher's answers to the training prompts, one shard per

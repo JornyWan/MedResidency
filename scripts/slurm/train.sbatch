@@ -9,8 +9,9 @@
 # One training run on the GPUs of one node. Everything after the script name goes to `medres train`:
 #
 #   mkdir -p logs
-#   sbatch -p <partition> scripts/slurm/train.sbatch --task cxr_report --method adaopd --seed 42
-#   sbatch -p <partition> --gres=gpu:h100:4 scripts/slurm/train.sbatch configs/recipes/adaopd/cxr_report_4b_adaopd.yaml
+#   sbatch -p <partition> scripts/slurm/train.sbatch --task cxr_report --method gkd --seed 42
+#   sbatch -p <partition> --gres=gpu:h100:4 scripts/slurm/train.sbatch configs/recipes/benchmark/cxr_report_4b.yaml \
+#       --method gkd
 #
 # Submit from the repository root with MEDRES_ENV (the training environment) set; MEDRES_DATA, MEDRES_MODELS and, for
 # the report reward of GRPO, MEDRES_METRICS_PYTHON are passed on when set. The request must match `hardware.gpus` of

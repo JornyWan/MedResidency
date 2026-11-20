@@ -1,5 +1,5 @@
 """Teacher generations + training prompts -> `train_teacher.jsonl`, the supervised file of offline KD and of the
-SFT term of two-stage, CHORD, CHORD-phi and AdaOPD.
+SFT term of two-stage, CHORD and CHORD-phi.
 
 The generations come from `medres eval generate --model <teacher> --data <task>/train.jsonl` (one file, or one per
 shard or per teacher tag); their `id` is the row number of the prompt. Truncated responses and responses that failed
@@ -10,8 +10,8 @@ stripped of surrounding white space.
     medres data teacher-outputs --prompts data/cxr_report/train.jsonl --generations gen.jsonl \\
         --out data/cxr_report/train_teacher.jsonl
 
-With several teachers, `--tags` keeps the outputs of some of them: AdaOPD replays the teachers that are far from the
-student (`medres probe gap`), e.g. `--tags CT MRI US --out data/modality_experts/train_teacher_far.jsonl`.
+With several teachers, `--tags` keeps the outputs of some of them, for an SFT term that replays these teachers only:
+`--tags CT MRI US --out data/modality_experts/train_teacher_ct_mri_us.jsonl`.
 
 Outputs of a teacher on credentialed data (MIMIC-CXR) are credentialed data. Prints counts only.
 """

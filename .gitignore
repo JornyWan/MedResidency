@@ -7,7 +7,6 @@
 /logs/
 /raw/
 /gen/
-/probes/
 *.jsonl
 *.safetensors
 *.bin

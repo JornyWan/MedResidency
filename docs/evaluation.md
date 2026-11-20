@@ -7,7 +7,7 @@ final checkpoint of every run.
 ## One command
 
 ```bash
-medres eval run --task cxr_report --model runs/cxr_report_adaopd_s42/checkpoint-300
+medres eval run --task cxr_report --model runs/cxr_report_gkd_s42/checkpoint-300
 ```
 
 `medres eval run` does three things:
@@ -36,7 +36,7 @@ second call with `--green` repeats the scoring but not the generation. A later c
 ## Output
 
 ```
-evals/cxr_report_adaopd_s42/checkpoint-300/
+evals/cxr_report_gkd_s42/checkpoint-300/
     summary.json                 corpus-level numbers of every test set
     mimic_cxr.jsonl              the responses: {id, text, n_tokens, truncated}
     mimic_cxr.scores.jsonl       per study: id and metric values, no text
@@ -103,12 +103,11 @@ correct answer.
 `cxr_report` and `med_vqa` have a validation file, built from training-side data that no training prompt uses:
 
 ```bash
-medres eval run --task cxr_report --model runs/cxr_report_adaopd_s42/checkpoint-300 --split validation
+medres eval run --task cxr_report --model runs/cxr_report_gkd_s42/checkpoint-300 --split validation
 ```
 
-Use it for every choice you make after looking at a score: a threshold, a learning rate, a checkpoint. The
-benchmark selects AdaOPD's τ this way ([benchmarks](../benchmarks/README.md#selecting-τ)) and reports the test sets
-once, at the final checkpoint.
+Use it for every choice you make after looking at a score: a hyper-parameter, a learning rate, a checkpoint. The
+benchmark reports the test sets once, at the final checkpoint.
 
 ## The steps as separate tools
 
@@ -131,7 +130,7 @@ the metric models once for all of them:
 
 ```bash
 medres eval report-score --data data/cxr_report/test_mimic.jsonl \
-    --generations evals/cxr_report_adaopd_s42/checkpoint-*/mimic_cxr.jsonl
+    --generations evals/cxr_report_gkd_s42/checkpoint-*/mimic_cxr.jsonl
 ```
 
 `--add-green` adds GREEN to files that were scored without it.
@@ -139,7 +138,7 @@ medres eval report-score --data data/cxr_report/test_mimic.jsonl \
 ## Comparing two runs
 
 ```bash
-medres stats compare evals/cxr_report_adaopd_s42/checkpoint-300/mimic_cxr.scores.jsonl \
+medres stats compare evals/cxr_report_gkd_s42/checkpoint-300/mimic_cxr.scores.jsonl \
     evals/cxr_report_chord_s42/checkpoint-300/mimic_cxr.scores.jsonl \
     --metric inv_radcliq --cluster-data data/cxr_report/test_mimic.jsonl
 ```
@@ -158,60 +157,6 @@ and that spread is not small: in the benchmark, the same recipe trained twice on
 
 The rules by which the benchmark calls a comparison a win, a tie or undetermined are on the
 [benchmark page](../benchmarks/README.md#comparing-two-runs).
-
-## The gap probe
-
-The gap probe looks at a teacher–student pair before any training. On-policy distillation moves each token `y` the
-student samples by the advantage `log p_T(y | image) − log p_S(y | image)`. The probe splits it into two parts:
-
-```
-visual evidence = log p_T(y | image) − log p_T(y | no image)     what the image adds to the teacher's judgement
-language gap    = log p_S(y | image) − log p_T(y | no image)     how far the student's wording is from the teacher's
-
-advantage = visual evidence − language gap
-```
-
-When the language gap is large, the advantage mostly tells the student to change how it writes, not what it sees.
-AdaOPD steers by this quantity ([methods.md](methods.md#adaopd)).
-
-```bash
-medres probe gap --data data/cxr_report/train.jsonl --student models/Qwen3-VL-2B-Instruct \
-    --teacher models/UniRG-CXR --out probes/unirg_qwen3vl2b
-```
-
-The untrained student writes one sampled and one greedy response to 128 training prompts (`--n`), and both models
-score every response with and without the image. This takes one GPU that holds both models. The report ends with
-three lines; for the report pair of the benchmark they read
-
-```
-language gap 3.05 nats on sampled responses (greedy 3.04)
-visual evidence -0.44 nats
-tau = 1.0: AdaOPD would start with mu = 1.00 (imitation of teacher outputs first)
-```
-
-and `probes/unirg_qwen3vl2b.json` has all numbers, including the split of the tokens into four classes (end of
-sequence, tokens after the point where the teacher would have stopped, repeats, and fresh tokens). The gap is
-averaged over the fresh tokens.
-
-Options worth knowing:
-
-- `--max-new-tokens` should be the response limit of the task (2,048 for reasoning VQA; the default is 512);
-- `--tag CT` restricts the prompts to one teacher of a multi-teacher task;
-- `--tau` only changes the last line of the report.
-
-How to read the result:
-
-- A gap below τ (1 nat by default) means the student already writes roughly as the teacher does. Plain OPD is a
-  reasonable choice, and AdaOPD will behave like it.
-- A gap above τ means the student's samples are far from text the teacher would write. AdaOPD then starts with SFT
-  on teacher outputs, so the pair needs a `train_teacher.jsonl`.
-- The probe measures the starting point only. In the benchmark, OPD collapsed with the teacher whose gap stayed
-  above τ during training, and trained well with teachers whose large initial gap closed within the first 100
-  steps. `lang_gap` in `logging.jsonl` shows which case a run is in; `--method opd method.monitor_gap=true` logs it
-  without changing the training.
-
-Teacher and student must share a tokenizer. That is a requirement of per-token distillation, not of the probe. The
-benchmark lists the gap of 17 pairs in its [gap atlas](../benchmarks/README.md#gap-atlas).
 
 ## References
 

@@ -14,18 +14,18 @@ First version.
 
 ### Added
 
-- `medres train`: one launcher for nine methods (`sft`, `offline_kd`, `opd`, `gkd`, `two_stage`, `chord`,
-  `chord_phi`, `adaopd`, `grpo`) on top of ms-swift 4.6.0 and vLLM 0.23.0, with teacher servers, an optional
+- `medres train`: one launcher for eight methods (`sft`, `offline_kd`, `opd`, `gkd`, `two_stage`, `chord`,
+  `chord_phi`, `grpo`) on top of ms-swift 4.6.0 and vLLM 0.23.0, with teacher servers, an optional
   report-metric reward server, resumable runs, and a record of configuration, commands and versions in every run
   directory.
 - Four tasks: `cxr_report`, `med_vqa`, `cxr_report_vqa`, `modality_experts`, and the recipes of the remaining
-  benchmark settings in `configs/recipes/adaopd/`.
+  benchmark settings in `configs/recipes/benchmark/`.
 - `medres data`: builders for the task files and for teacher outputs.
 - `medres eval`: generation with vLLM, report metrics (RadEval, with a length cap for GREEN), VQA accuracy, and
   `medres eval run` that chains them.
-- `medres probe gap`: the language gap and the visual evidence of a teacher–student pair before training.
 - `medres stats compare`: paired bootstrap comparison of two runs, with resampling by patient.
-- The benchmark page with the results of the AdaOPD paper and the command behind every row.
+- The benchmark page with the results of every method on every task and the command behind every row, and
+  `scripts/plot_benchmark.py`, which draws the figure of that page from its tables.
 - Install scripts for the training and the metrics environment (versions pinned in `requirements-train.txt` and
   `requirements-metrics.txt`), a download script, and SLURM templates.
 

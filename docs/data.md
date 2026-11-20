@@ -42,9 +42,9 @@ download it and cannot give you access. If you work with it, the agreement cover
 
 Whether weights trained on the data may be released is also a question for the agreement, not for this framework.
 
-The tools are written for this situation. The builders, the generator, the scorers and the gap probe print counts
-and aggregate statistics, never text. `.gitignore` keeps `data/`, `raw/`, `runs/`, `evals/`, every `*.jsonl` and
-every image out of version control, and `scripts/check_release.py` fails when such a file is tracked anyway.
+The tools are written for this situation. The builders, the generator and the scorers print counts and aggregate
+statistics, never text. `.gitignore` keeps `data/`, `raw/`, `runs/`, `evals/`, every `*.jsonl` and every image out
+of version control, and `scripts/check_release.py` fails when such a file is tracked anyway.
 Results enter the benchmark as corpus-level numbers ([benchmarks](../benchmarks/README.md#contributing-results)).
 
 ## Building the task files
@@ -118,9 +118,9 @@ it. The builder writes `train.jsonl` (71,333 questions, each tagged with the exp
 
 ## Teacher outputs
 
-Offline KD and the SFT term of two-stage, CHORD, CHORD-φ and AdaOPD train on answers the teacher wrote to the
-training prompts. They are made once per task, in two steps: the teacher generates, and
-`medres data teacher-outputs` joins its responses with the prompts.
+Offline KD and the SFT term of two-stage, CHORD and CHORD-φ train on answers the teacher wrote to the training
+prompts. They are made once per task, in two steps: the teacher generates, and `medres data teacher-outputs` joins
+its responses with the prompts.
 
 ```bash
 medres eval generate --task med_vqa --profile teacher_outputs --model models/MediX-R1-8B \
@@ -155,12 +155,11 @@ done
 medres data teacher-outputs --prompts data/modality_experts/train.jsonl --generations gen/*.jsonl \
     --out data/modality_experts/train_teacher.jsonl
 medres data teacher-outputs --prompts data/modality_experts/train.jsonl --generations gen/*.jsonl \
-    --tags CT MRI US --out data/modality_experts/train_teacher_far.jsonl
+    --tags CT MRI US --out data/modality_experts/train_teacher_ct_mri_us.jsonl
 ```
 
 The last command keeps the outputs of three teachers only, and the counts it prints are those of their prompts.
-AdaOPD's SFT term reads the teachers that are far from the student, and `medres probe gap`
-([evaluation.md](evaluation.md#the-gap-probe)) says which ones those are.
+Point `data.teacher_outputs` to such a file when the SFT term of a method should replay some of the teachers.
 
 The join refuses to write a file unless there is exactly one generation for every prompt, so a missing shard or a
 missing teacher cannot go unnoticed.

@@ -41,12 +41,6 @@ generation:   # settings of `medres eval generate --task modality_experts [--pro
     retries: 4
     well_formed: '<think>.*?</think>\s*<answer>.*?</answer>'
 overrides:
-  # Three experts are far from the base student (CT, MRI, ultrasound: `medres probe gap`) and five are close. The gap
-  # is measured on the far ones, and the SFT term replays their outputs only
-  # (`medres data teacher-outputs --tags CT MRI US`).
-  adaopd:
-    data: {teacher_outputs: modality_experts/train_teacher_far.jsonl}
-    method: {measure_tags: [CT, MRI, US]}
   two_stage: {method: {sft_steps: 200}}   # 200 + 300 steps, both ending on a checkpoint
   grpo:
     method: {reward: answer_exact}

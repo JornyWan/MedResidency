@@ -294,7 +294,6 @@ def run_stage(cfg: dict, stage: methods.Stage, gpus: list[str], env_add: dict, m
     student = gpus[: stage.n_gpus]
     if resumed_from:
         args["resume_from_checkpoint"] = f"{stage.output_dir}/checkpoint-{resumed_from}"
-        env_stage["MEDRES_RESUME_CHECKPOINT"] = args["resume_from_checkpoint"]
     base_env = {**os.environ, **env_add}
     timeout = cfg["teacher_server"]["startup_timeout"]
     text = [f"# stage {stage.name}: {stage.steps} steps, student on GPU {','.join(student)}"]

@@ -1,9 +1,9 @@
 """The `medres` command.
 
 medres list [tasks|methods|models|rewards]
-medres train --task cxr_report --method adaopd [--seed 2] [--name my_run] [key=value ...] [--dry-run]
-medres train configs/recipes/adaopd/cxr_report_4b_adaopd.yaml --seed 2
-medres data ...  |  medres eval ...  |  medres probe ...  |  medres stats ...     (see `medres <group> --help`)
+medres train --task cxr_report --method gkd [--seed 2] [--name my_run] [key=value ...] [--dry-run]
+medres train configs/recipes/benchmark/cxr_report_4b.yaml --method gkd --seed 2
+medres data ...  |  medres eval ...  |  medres stats ...     (see `medres <group> --help`)
 """
 
 from __future__ import annotations
@@ -35,9 +35,6 @@ TOOLS = {
         "generate": ("eval.generate", "a model's responses to the prompts of a file"),
         "vqa": ("eval.vqa", "accuracy of generated answers"),
         "report-score": ("eval.report_score", "report metrics: RadCliQ-v1, RadGraph-F1, RaTEScore, CheXbert, GREEN"),
-    },
-    "probe": {
-        "gap": ("probe.gap", "language gap and visual evidence of a teacher-student pair before training"),
     },
     "stats": {
         "compare": ("stats", "paired bootstrap between two models on the same test set"),

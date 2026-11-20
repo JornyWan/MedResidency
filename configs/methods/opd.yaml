@@ -5,4 +5,3 @@ description: >-
 method:
   name: opd
   repetition_penalty: null   # sampling penalty of the rollouts, e.g. 1.05 (a common fix for looping; off by default)
-  monitor_gap: false         # also log the language gap of every step (one extra image-free teacher pass)

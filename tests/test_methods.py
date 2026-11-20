@@ -25,7 +25,7 @@ def test_every_method_has_a_builder_and_a_config():
 
 def test_golden_arguments():
     """The ms-swift arguments of every task x method. The file was checked, key by key, against the arguments recorded
-    by the runs of the AdaOPD paper; a change here changes the benchmark protocol and must be deliberate:
+    by the benchmark runs; a change here changes the benchmark protocol and must be deliberate:
     MEDRES_UPDATE_GOLDEN=1 pytest tests/test_methods.py, then review the diff."""
     now = {}
     for task, method in pairs():
@@ -87,24 +87,6 @@ def test_two_stage():
     assert only.args["model"] == "/ckpt/kd-150" and only.steps == 150
     with pytest.raises(ConfigError, match="sft_steps"):
         build("cxr_report", "two_stage", "method.sft_steps=300")
-
-
-def test_adaopd_environment():
-    (stage,) = build("cxr_report_vqa", "adaopd", "method.tau=0.5", "method.fresh_tokens=false")
-    assert stage.env == {
-        "MEDRES_ADAOPD_MODE": "control",
-        "MEDRES_ADAOPD_TAU": "0.5",
-        "MEDRES_ADAOPD_EMA": "0.9",
-        "MEDRES_ADAOPD_TAGS": "unirg",
-        "MEDRES_ADAOPD_FRESH": "0",
-        "MEDRES_ADAOPD_SIGNAL": "lang",
-    }
-    assert stage.args["chord_sft_dataset"] == "data/cxr_report/train_teacher.jsonl"  # the report teacher's outputs only
-    assert Path(stage.args["external_plugins"][0]).is_file()
-    with pytest.raises(ConfigError, match="measure_tags"):
-        build("cxr_report", "adaopd", "method.measure_tags=[medix]")
-    with pytest.raises(ConfigError, match="signal"):
-        build("cxr_report", "adaopd", "method.signal=entropy")
 
 
 def test_method_requirements():

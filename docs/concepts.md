@@ -3,7 +3,7 @@
 ## A run is a task, a method and a seed
 
 ```bash
-medres train --task cxr_report --method adaopd --seed 42
+medres train --task cxr_report --method gkd --seed 42
 ```
 
 - A **task** fixes what is learned and how it is measured: the student, the teachers, the training files, the budget
@@ -37,13 +37,13 @@ configs/defaults.yaml            every key, with its default and a comment
 `--print-config` shows the result without starting anything:
 
 ```bash
-medres train --task cxr_report --method adaopd --print-config
+medres train --task cxr_report --method gkd --print-config
 ```
 
 Any key can be set on the command line with its dotted path:
 
 ```bash
-medres train --task cxr_report --method adaopd method.tau=0.5 train.lr=1e-6 --name cxr_report_adaopd_tau05_s42
+medres train --task cxr_report --method gkd method.beta=0.9 train.lr=1e-6 --name cxr_report_gkd_beta09_s42
 ```
 
 Three rules keep configurations honest:
@@ -73,8 +73,8 @@ A recipe is a YAML file with the same keys, for a run that is more than a task a
 benchmark are in `configs/recipes/`:
 
 ```bash
-medres train configs/recipes/adaopd/cxr_report_4b_adaopd.yaml --seed 42
-medres train configs/recipes/adaopd/cxr_report_4b.yaml --method gkd --seed 42
+medres train configs/recipes/benchmark/cxr_report_vqa_chord_report.yaml --seed 42
+medres train configs/recipes/benchmark/cxr_report_4b.yaml --method gkd --seed 42
 ```
 
 The first recipe names its task and method. The second names only the task (the 4B student on the report task) and
@@ -84,15 +84,15 @@ takes the method from the command line.
 
 A run is called `<task>_<method>_s<seed>` unless `--name` is given. With a recipe the name is the recipe's file name
 plus the seed, with the method in between when the recipe leaves it open: the two commands above produce
-`cxr_report_4b_adaopd_s42` and `cxr_report_4b_gkd_s42`.
+`cxr_report_vqa_chord_report_s42` and `cxr_report_4b_gkd_s42`.
 
 Give a run with overrides its own `--name`. The launcher refuses to start in a directory that already holds
 checkpoints, unless the run is being resumed.
 
 ```
-runs/cxr_report_adaopd_s42/
+runs/cxr_report_gkd_s42/
     checkpoint-50/ ... checkpoint-300/     model weights; the newest one also holds the optimizer state
-    logging.jsonl                          one line per logged step (loss, lang_gap, adaopd_mu, ...)
+    logging.jsonl                          one line per logged step (loss, learning rate, ...)
     medres/
         config.yaml                        the resolved configuration
         commands.sh                        the environment and every command that was run
@@ -146,11 +146,10 @@ A checkpoint is saved with the optimizer state. A run that was interrupted conti
 the same command is run again with `run.resume=true`:
 
 ```bash
-medres train --task cxr_report --method adaopd --seed 42 run.resume=true
+medres train --task cxr_report --method gkd --seed 42 run.resume=true
 ```
 
-Stages that already have their final checkpoint are skipped. AdaOPD restores its controller from `logging.jsonl`,
-so the resumed run continues with the smoothed gap and the first-step gap of the original run.
+Stages that already have their final checkpoint are skipped.
 
 The last checkpoint is the one that the link `runs/<run>/last-checkpoint` points to. ms-swift moves the link when a
 checkpoint is written completely, so a checkpoint that a cancelled job left half-written does not count and is
@@ -175,7 +174,7 @@ Variables you have set yourself are kept.
 | `MEDRES_BAD_WORDS` | `train.banned_tokens` | vision placeholder tokens the student must not sample |
 | `MODELSCOPE_CACHE`, `HF_DATASETS_CACHE` | a temporary directory per run | concurrent runs that share ms-swift's dataset cache crash each other |
 
-The method adds its own variables to the training command (`MEDRES_ADAOPD_*` for AdaOPD, `MEDRES_REWARD_URL` for a
-reward that is scored by the metric server). They appear in `commands.sh` and in the dry run.
+A method can add its own variables to the training command (`MEDRES_REWARD_URL` for a reward that is scored by the
+metric server). They appear in `commands.sh` and in the dry run.
 
 `medres eval generate` starts vLLM without the launcher and sets the first three variables in the same way.

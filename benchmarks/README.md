@@ -1,21 +1,37 @@
 # Benchmark
 
-Results of the methods in MedResidency on its tasks, with the commands that reproduce each row.
+Results of the methods in MedResidency on its tasks, with the command behind every row.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../assets/benchmark-dark.svg">
+    <img src="../assets/benchmark-light.svg" alt="Report generation: 1/RadCliQ and truncated reports of every method" width="880">
+  </picture>
+</p>
+
+<p align="center">
+  <sub>
+    Chest X-ray report generation with a 2B student and an 8B teacher, three seeds per method.
+    The numbers are in the tables of <a href="#report-generation">Report generation</a>.
+  </sub>
+</p>
 
 Within a table every run follows one protocol: the same student, data, number of optimizer steps, sequences per step,
 learning rate, response limit and hardware. Only the method differs. Unless a table says otherwise, a number is the
-mean ± standard deviation over three seeds (42, 2, 3) at the final checkpoint, with greedy decoding on the test set.
+mean over three seeds (42, 2, 3) at the final checkpoint, with greedy decoding on the test set, and the small number
+after it is the standard deviation over the seeds.
 
-> **Where the numbers come from.** The tables were produced for the AdaOPD paper with the research code that
-> MedResidency was refactored from. They have not been re-run with this package. What we did check: for 47 of the
-> recorded runs we compared the training arguments MedResidency builds with the arguments that were recorded at the
-> time. 40 are identical; 7 differ only in how checkpoints are saved (`save_steps`, `save_only_model`). We also
-> rebuilt the task files with `medres data` and compared them with the files the recorded runs read
+> **Where the numbers come from.** The tables were produced with the research code that MedResidency was refactored
+> from. They have not been re-run with this package. What we did check: for 40 of the recorded runs we compared the
+> training arguments MedResidency builds with the arguments that were recorded at the time. 33 are identical; 7 differ
+> only in how checkpoints are saved (`save_steps`, `save_only_model`). We also rebuilt the task files with
+> `medres data` and compared them with the files the recorded runs read
 > ([data.md](../docs/data.md#check-against-the-benchmarks-files)). If you reproduce a row, please
 > [send us the result](#contributing-results).
 
 ## Contents
 
+- [At a glance](#at-a-glance)
 - [Protocol](#protocol)
 - [Metrics and test sets](#metrics-and-test-sets)
 - [Report generation](#report-generation)
@@ -24,11 +40,27 @@ mean ± standard deviation over three seeds (42, 2, 3) at the final checkpoint, 
 - [Modality experts](#modality-experts)
 - [A larger student](#a-larger-student)
 - [A new teacher for a trained student](#a-new-teacher-for-a-trained-student)
-- [Ablations of AdaOPD](#ablations-of-adaopd)
-- [Selecting τ](#selecting-τ)
-- [Gap atlas](#gap-atlas)
+- [Variants of OPD and CHORD](#variants-of-opd-and-chord)
 - [Comparing two runs](#comparing-two-runs)
 - [Contributing results](#contributing-results)
+
+## At a glance
+
+The best trained method of every setting on its headline metric, next to the student it started from and the teacher.
+
+| Setting | Test set and metric | Student | Best method | Score | Teacher |
+|:--|:--|--:|:--|--:|--:|
+| [Report generation](#report-generation) | MIMIC-CXR, 1/RadCliQ ↑ | 0.548 | GKD | 0.919 | 1.278 |
+| [Two teachers](#two-teachers) | MIMIC-CXR, 1/RadCliQ ↑ | 0.548 | CHORD (report) | 0.892 | 1.278 |
+| | PMC-VQA, accuracy ↑ | 46.3 | CHORD (report) | 49.1 | 53.0 |
+| [Reasoning VQA](#reasoning-vqa) | PMC-VQA, accuracy ↑ | 46.3 | OPD | 48.3 | 53.0 |
+| [Modality experts](#modality-experts) | OmniMedVQA, accuracy ↑ | – | OPD | 95.48 | – |
+| [A larger student](#a-larger-student) | MIMIC-CXR, 1/RadCliQ ↑ | 0.688 | GKD | 0.923 | 1.278 |
+| [A new teacher for a trained student](#a-new-teacher-for-a-trained-student) | MIMIC-CXR, 1/RadCliQ ↑ | 0.570 | CHORD | 0.901 | 1.278 |
+| | PMC-VQA, accuracy ↑ | 48.3 | CHORD | 48.9 | 53.0 |
+
+No method is best everywhere, and several of these leads are within the spread of the seeds: the tables below give
+the standard deviations. For the modality experts this page has no reference rows.
 
 ## Protocol
 
@@ -54,11 +86,11 @@ the runs you compare on one GPU type, and do not read a single-seed difference o
 
 Reports are scored on findings and impression together.
 
-- **1/RadCliQ** is the headline metric: the reciprocal of the mean RadCliQ-v1 over the test studies. Higher is better.
+- **1/RadCliQ** is the headline metric: the reciprocal of the mean RadCliQ-v1 over the test studies.
 - **RadGraph** (F1), **RaTE** (RaTEScore), **CheXbert-5** (micro-F1 over five conditions) and **GREEN** are shown on a
   0–100 scale.
-- **Trunc.** is the share of MIMIC-CXR test reports that reach the generation limit of 1,024 tokens. A student that
-  has collapsed into repetition shows up here.
+- **Trunc.** is the share (%) of MIMIC-CXR test reports that reach the generation limit of 1,024 tokens. A student
+  that has collapsed into repetition shows up here.
 
 VQA is scored by accuracy (%) over all questions. A response with no recognizable option counts as wrong.
 
@@ -73,37 +105,55 @@ VQA is scored by accuracy (%) over all questions. A response with no recognizabl
 
 The task `cxr_report_vqa` is evaluated on the five sets of `cxr_report` and `med_vqa`.
 
-In every table the best trained method of a column is in bold. The first rows (the untrained student, the teachers)
-are references and are not ranked.
+An arrow in a column title says whether higher (↑) or lower (↓) is better. In the tables of the six settings the best
+trained method of a column is in bold. The first rows (the teachers, the student the run starts from) are references
+and are not ranked.
 
 ## Report generation
 
-Task `cxr_report`: one teacher, UniRG-CXR, on 20,000 MIMIC-CXR training studies with one frontal image each. The
-untrained student is far from this teacher (language gap 3.05 nats, see the [gap atlas](#gap-atlas)), and plain OPD
-collapses into repetition on some seeds.
+Task `cxr_report`: one teacher, UniRG-CXR, on 20,000 MIMIC-CXR training studies with one frontal image each. Plain
+OPD collapses into repetition on some seeds of this task, which is what its truncation column shows.
 
-| Method | MIMIC-CXR 1/RadCliQ | MIMIC-CXR RadGraph | MIMIC-CXR RaTE | MIMIC-CXR CheXbert-5 | MIMIC-CXR GREEN | IU X-ray 1/RadCliQ | IU X-ray RadGraph | IU X-ray RaTE | Trunc. (%) |
-|:--|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| General student (Qwen3-VL-2B) | 0.548 | 11.1 | 50.8 | 27.8 | 21.2 | 0.678 | 15.0 | 55.5 | 48.9 |
-| Specialized teacher (UniRG-CXR-8B) | 1.278 | 29.7 | 63.9 | 65.6 | 40.4 | 3.228 | 37.6 | 70.9 | 0.0 |
-| Label SFT | 0.818 ± 0.015 | 18.3 ± 0.4 | 56.4 ± 0.2 | 41.5 ± 3.5 | 29.3 ± 0.8 | 1.551 ± 0.234 | 24.1 ± 3.7 | 62.2 ± 3.7 | 4.1 ± 2.7 |
-| Offline KD | 0.841 ± 0.019 | 20.0 ± 0.2 | 56.9 ± 0.4 | 43.4 ± 5.0 | 30.3 ± 0.1 | 1.441 ± 0.068 | 24.8 ± 0.4 | 66.0 ± 1.1 | 6.9 ± 2.7 |
-| OPD | 0.726 ± 0.074 | 17.4 ± 0.9 | 56.5 ± 2.2 | 39.1 ± 10.3 | 24.8 ± 1.9 | 1.749 ± 0.094 | 26.9 ± 0.2 | 67.7 ± 0.8 | 22.4 ± 18.3 |
-| GKD | 0.919 ± 0.013 | 21.6 ± 0.2 | 59.0 ± 0.3 | 42.7 ± 5.7 | 31.0 ± 0.4 | 1.892 ± 0.109 | **28.9** ± 0.2 | **68.1** ± 0.5 | **0.0** ± 0.0 |
-| CHORD | 0.913 ± 0.015 | 21.5 ± 0.3 | 59.1 ± 0.6 | 51.5 ± 3.4 | 30.1 ± 1.4 | 1.702 ± 0.227 | 27.4 ± 1.2 | 67.1 ± 1.0 | 1.2 ± 0.3 |
-| CHORD-φ | 0.742 ± 0.129 | 18.5 ± 1.4 | 57.6 ± 0.9 | 42.1 ± 6.6 | 26.2 ± 2.0 | 1.746 ± 0.157 | 26.9 ± 1.1 | 68.1 ± 1.3 | 27.5 ± 37.6 |
-| Two-stage | 0.892 ± 0.034 | 21.4 ± 1.0 | 58.9 ± 1.2 | **52.1** ± 0.7 | 30.4 ± 3.1 | 1.563 ± 0.176 | 27.0 ± 0.9 | 67.0 ± 0.3 | 3.4 ± 5.5 |
-| AdaOPD | **0.931** ± 0.005 | **22.0** ± 0.3 | **59.7** ± 0.6 | 50.3 ± 4.7 | **31.2** ± 1.0 | **1.950** ± 0.030 | 28.7 ± 0.0 | 68.0 ± 0.1 | 0.8 ± 0.9 |
+**MIMIC-CXR test**, 1,624 studies
+
+| Method | 1/RadCliQ ↑ | RadGraph ↑ | RaTE ↑ | CheXbert-5 ↑ | GREEN ↑ | Trunc. ↓ |
+|:--|--:|--:|--:|--:|--:|--:|
+| Teacher (UniRG-CXR-8B) | 1.278 | 29.7 | 63.9 | 65.6 | 40.4 | 0.0 |
+| Student before training (Qwen3-VL-2B) | 0.548 | 11.1 | 50.8 | 27.8 | 21.2 | 48.9 |
+| Label SFT | 0.818 <sub>± 0.015</sub> | 18.3 <sub>± 0.4</sub> | 56.4 <sub>± 0.2</sub> | 41.5 <sub>± 3.5</sub> | 29.3 <sub>± 0.8</sub> | 4.1 <sub>± 2.7</sub> |
+| Offline KD | 0.841 <sub>± 0.019</sub> | 20.0 <sub>± 0.2</sub> | 56.9 <sub>± 0.4</sub> | 43.4 <sub>± 5.0</sub> | 30.3 <sub>± 0.1</sub> | 6.9 <sub>± 2.7</sub> |
+| OPD | 0.726 <sub>± 0.074</sub> | 17.4 <sub>± 0.9</sub> | 56.5 <sub>± 2.2</sub> | 39.1 <sub>± 10.3</sub> | 24.8 <sub>± 1.9</sub> | 22.4 <sub>± 18.3</sub> |
+| GKD | **0.919** <sub>± 0.013</sub> | **21.6** <sub>± 0.2</sub> | 59.0 <sub>± 0.3</sub> | 42.7 <sub>± 5.7</sub> | **31.0** <sub>± 0.4</sub> | **0.0** <sub>± 0.0</sub> |
+| CHORD | 0.913 <sub>± 0.015</sub> | 21.5 <sub>± 0.3</sub> | **59.1** <sub>± 0.6</sub> | 51.5 <sub>± 3.4</sub> | 30.1 <sub>± 1.4</sub> | 1.2 <sub>± 0.3</sub> |
+| CHORD-φ | 0.742 <sub>± 0.129</sub> | 18.5 <sub>± 1.4</sub> | 57.6 <sub>± 0.9</sub> | 42.1 <sub>± 6.6</sub> | 26.2 <sub>± 2.0</sub> | 27.5 <sub>± 37.6</sub> |
+| Two-stage | 0.892 <sub>± 0.034</sub> | 21.4 <sub>± 1.0</sub> | 58.9 <sub>± 1.2</sub> | **52.1** <sub>± 0.7</sub> | 30.4 <sub>± 3.1</sub> | 3.4 <sub>± 5.5</sub> |
+
+**IU X-ray test**, 590 studies; no IU X-ray study is used in training
+
+| Method | 1/RadCliQ ↑ | RadGraph ↑ | RaTE ↑ |
+|:--|--:|--:|--:|
+| Teacher (UniRG-CXR-8B) | 3.228 | 37.6 | 70.9 |
+| Student before training (Qwen3-VL-2B) | 0.678 | 15.0 | 55.5 |
+| Label SFT | 1.551 <sub>± 0.234</sub> | 24.1 <sub>± 3.7</sub> | 62.2 <sub>± 3.7</sub> |
+| Offline KD | 1.441 <sub>± 0.068</sub> | 24.8 <sub>± 0.4</sub> | 66.0 <sub>± 1.1</sub> |
+| OPD | 1.749 <sub>± 0.094</sub> | 26.9 <sub>± 0.2</sub> | 67.7 <sub>± 0.8</sub> |
+| GKD | **1.892** <sub>± 0.109</sub> | **28.9** <sub>± 0.2</sub> | **68.1** <sub>± 0.5</sub> |
+| CHORD | 1.702 <sub>± 0.227</sub> | 27.4 <sub>± 1.2</sub> | 67.1 <sub>± 1.0</sub> |
+| CHORD-φ | 1.746 <sub>± 0.157</sub> | 26.9 <sub>± 1.1</sub> | **68.1** <sub>± 1.3</sub> |
+| Two-stage | 1.563 <sub>± 0.176</sub> | 27.0 <sub>± 0.9</sub> | 67.0 <sub>± 0.3</sub> |
+
+<details>
+<summary>Commands</summary>
 
 ```bash
 # the two reference rows
-medres eval run --task cxr_report --model models/Qwen3-VL-2B-Instruct --green
 medres eval run --task cxr_report --model models/UniRG-CXR --green
+medres eval run --task cxr_report --model models/Qwen3-VL-2B-Instruct --green
 
 # one method, three seeds
 for seed in 42 2 3; do
-    medres train --task cxr_report --method adaopd --seed $seed
-    medres eval run --task cxr_report --model runs/cxr_report_adaopd_s$seed/checkpoint-300 --green
+    medres train --task cxr_report --method gkd --seed $seed
+    medres eval run --task cxr_report --model runs/cxr_report_gkd_s$seed/checkpoint-300 --green
 done
 ```
 
@@ -116,65 +166,69 @@ done
 | CHORD | `chord` | cosine decay of μ from 1 to 0 over the 300 steps |
 | CHORD-φ | `chord_phi` | |
 | Two-stage | `two_stage` | 150 steps of offline KD, then 150 of OPD; the final checkpoint is `checkpoint-150` |
-| AdaOPD | `adaopd` | τ = 1 |
+
+</details>
 
 ## Two teachers
 
 Task `cxr_report_vqa`: UniRG-CXR teaches 10,000 report prompts and MediX-R1-8B teaches 10,000 PMC-VQA questions, mixed
-in one run. One student serves both tasks.
+in one run. One student serves both tasks. The first four columns score its reports, the last three are VQA accuracy.
 
-| Method | 1/RadCliQ | RaTE | GREEN | IU 1/RadCliQ | PMC-VQA | MedXpertQA | MMMU-H&M |
+| Method | MIMIC 1/RadCliQ ↑ | MIMIC RaTE ↑ | MIMIC GREEN ↑ | IU 1/RadCliQ ↑ | PMC-VQA ↑ | MedXpertQA ↑ | MMMU-H&M ↑ |
 |:--|--:|--:|--:|--:|--:|--:|--:|
-| General student (Qwen3-VL-2B) | 0.548 | 50.8 | 21.2 | 0.678 | 46.3 | 16.3 | 41.9 |
-| Specialized teachers (UniRG-CXR-8B / MediX-R1-8B) | 1.278 | 63.9 | 40.4 | 3.228 | 53.0 | 30.2 | 68.4 |
-| Offline KD | 0.788 ± 0.013 | 56.6 ± 0.3 | 28.7 ± 0.4 | 1.715 ± 0.166 | 46.0 ± 2.7 | 17.6 ± 0.9 | 43.6 ± 3.0 |
-| OPD | 0.619 ± 0.143 | 53.9 ± 3.7 | 22.0 ± 5.9 | 1.478 ± 0.604 | 46.6 ± 2.7 | 17.1 ± 2.1 | 46.1 ± 1.1 |
-| GKD | 0.847 ± 0.008 | 57.8 ± 0.6 | 28.4 ± 0.9 | 1.902 ± 0.082 | 47.9 ± 0.3 | 19.9 ± 0.4 | 46.4 ± 1.3 |
-| CHORD (both) | 0.874 ± 0.027 | 58.9 ± 0.2 | 29.6 ± 0.8 | **1.933** ± 0.015 | 47.0 ± 1.6 | 19.8 ± 0.4 | 46.6 ± 2.8 |
-| CHORD (report) | 0.892 ± 0.036 | 58.1 ± 1.1 | 28.9 ± 1.7 | 1.589 ± 0.243 | 49.1 ± 1.0 | 20.9 ± 0.6 | 47.5 ± 4.3 |
-| Two-stage (both) | 0.888 ± 0.033 | 58.3 ± 1.1 | 29.7 ± 0.8 | 1.785 ± 0.205 | 48.7 ± 0.4 | 19.1 ± 0.5 | 46.8 ± 1.1 |
-| Two-stage (report) | 0.888 ± 0.041 | 58.6 ± 0.5 | 29.4 ± 0.3 | 1.840 ± 0.069 | 48.1 ± 1.0 | **21.2** ± 1.0 | 47.3 ± 2.9 |
-| AdaOPD | **0.920** ± 0.008 | **59.3** ± 0.6 | **30.7** ± 0.6 | 1.915 ± 0.018 | **49.5** ± 1.0 | 20.8 ± 0.7 | **49.5** ± 3.8 |
+| Teachers (UniRG-CXR-8B, MediX-R1-8B) | 1.278 | 63.9 | 40.4 | 3.228 | 53.0 | 30.2 | 68.4 |
+| Student before training (Qwen3-VL-2B) | 0.548 | 50.8 | 21.2 | 0.678 | 46.3 | 16.3 | 41.9 |
+| Offline KD | 0.788 <sub>± 0.013</sub> | 56.6 <sub>± 0.3</sub> | 28.7 <sub>± 0.4</sub> | 1.715 <sub>± 0.166</sub> | 46.0 <sub>± 2.7</sub> | 17.6 <sub>± 0.9</sub> | 43.6 <sub>± 3.0</sub> |
+| OPD | 0.619 <sub>± 0.143</sub> | 53.9 <sub>± 3.7</sub> | 22.0 <sub>± 5.9</sub> | 1.478 <sub>± 0.604</sub> | 46.6 <sub>± 2.7</sub> | 17.1 <sub>± 2.1</sub> | 46.1 <sub>± 1.1</sub> |
+| GKD | 0.847 <sub>± 0.008</sub> | 57.8 <sub>± 0.6</sub> | 28.4 <sub>± 0.9</sub> | 1.902 <sub>± 0.082</sub> | 47.9 <sub>± 0.3</sub> | 19.9 <sub>± 0.4</sub> | 46.4 <sub>± 1.3</sub> |
+| CHORD (both) | 0.874 <sub>± 0.027</sub> | **58.9** <sub>± 0.2</sub> | 29.6 <sub>± 0.8</sub> | **1.933** <sub>± 0.015</sub> | 47.0 <sub>± 1.6</sub> | 19.8 <sub>± 0.4</sub> | 46.6 <sub>± 2.8</sub> |
+| CHORD (report) | **0.892** <sub>± 0.036</sub> | 58.1 <sub>± 1.1</sub> | 28.9 <sub>± 1.7</sub> | 1.589 <sub>± 0.243</sub> | **49.1** <sub>± 1.0</sub> | 20.9 <sub>± 0.6</sub> | **47.5** <sub>± 4.3</sub> |
+| Two-stage (both) | 0.888 <sub>± 0.033</sub> | 58.3 <sub>± 1.1</sub> | **29.7** <sub>± 0.8</sub> | 1.785 <sub>± 0.205</sub> | 48.7 <sub>± 0.4</sub> | 19.1 <sub>± 0.5</sub> | 46.8 <sub>± 1.1</sub> |
+| Two-stage (report) | 0.888 <sub>± 0.041</sub> | 58.6 <sub>± 0.5</sub> | 29.4 <sub>± 0.3</sub> | 1.840 <sub>± 0.069</sub> | 48.1 <sub>± 1.0</sub> | **21.2** <sub>± 1.0</sub> | 47.3 <sub>± 2.9</sub> |
 
 "Both" and "report" say which teacher outputs the SFT term reads: those of both teachers on the 20,000 mixed prompts,
-or those of the report teacher only. AdaOPD measures the gap to each teacher and keeps the outputs of the teachers
-whose gap is above τ. Here that is the report teacher alone, with its outputs on the 20,000 studies of the report
-task, and the "report" rows give CHORD and the two-stage recipe the same data.
+which is the task's default, or the report teacher's outputs on the 20,000 studies of the report task.
+
+<details>
+<summary>Commands</summary>
 
 ```bash
-medres train --task cxr_report_vqa --method adaopd --seed 42
-medres train --task cxr_report_vqa --method chord --seed 42                            # CHORD (both)
-medres train configs/recipes/adaopd/cxr_report_vqa_chord_report.yaml --seed 42          # CHORD (report)
-medres train --task cxr_report_vqa --method two_stage --seed 42                        # Two-stage (both)
-medres train configs/recipes/adaopd/cxr_report_vqa_two_stage_report.yaml --seed 42      # Two-stage (report)
+medres train --task cxr_report_vqa --method chord --seed 42                              # CHORD (both)
+medres train configs/recipes/benchmark/cxr_report_vqa_chord_report.yaml --seed 42        # CHORD (report)
+medres train --task cxr_report_vqa --method two_stage --seed 42                          # Two-stage (both)
+medres train configs/recipes/benchmark/cxr_report_vqa_two_stage_report.yaml --seed 42    # Two-stage (report)
 
-medres eval run --task cxr_report_vqa --model runs/cxr_report_vqa_adaopd_s42/checkpoint-300 --green
+medres eval run --task cxr_report_vqa --model runs/cxr_report_vqa_chord_s42/checkpoint-300 --green
 ```
 
 A run started from a recipe is named after the recipe file: `runs/cxr_report_vqa_chord_report_s42`.
 
+</details>
+
 ## Reasoning VQA
 
-Task `med_vqa`: MediX-R1-8B on 20,000 PMC-VQA training questions, with long step-by-step rationales. This is the
-control setting. The student starts close to the teacher (gap 0.64 nats, below τ), so AdaOPD uses no SFT from the
-first step and trains exactly as OPD. The two share one row.
+Task `med_vqa`: MediX-R1-8B on 20,000 PMC-VQA training questions, with long step-by-step rationales. Student and
+teacher start close to each other here, and plain OPD works well: this is the control task.
 
-| Method | PMC-VQA | MedXpertQA | MMMU-H&M |
+| Method | PMC-VQA ↑ | MedXpertQA ↑ | MMMU-H&M ↑ |
 |:--|--:|--:|--:|
-| General student (Qwen3-VL-2B) | 46.3 | 16.3 | 41.9 |
-| Specialized teacher (MediX-R1-8B) | 53.0 | 30.2 | 68.4 |
-| Offline KD | 46.1 ± 0.3 | 17.3 ± 1.4 | 44.8 ± 2.0 |
-| GKD | 46.7 ± 1.0 | 17.8 ± 0.7 | 42.6 ± 0.8 |
-| CHORD | 47.3 ± 0.8 | **19.3** ± 0.6 | 46.3 ± 3.4 |
-| Two-stage | 47.9 ± 0.7 | 19.0 ± 1.1 | **48.5** ± 0.8 |
-| OPD = AdaOPD | **48.3** ± 1.0 | **19.3** ± 1.3 | 44.9 ± 3.0 |
+| Teacher (MediX-R1-8B) | 53.0 | 30.2 | 68.4 |
+| Student before training (Qwen3-VL-2B) | 46.3 | 16.3 | 41.9 |
+| Offline KD | 46.1 <sub>± 0.3</sub> | 17.3 <sub>± 1.4</sub> | 44.8 <sub>± 2.0</sub> |
+| OPD | **48.3** <sub>± 1.0</sub> | **19.3** <sub>± 1.3</sub> | 44.9 <sub>± 3.0</sub> |
+| GKD | 46.7 <sub>± 1.0</sub> | 17.8 <sub>± 0.7</sub> | 42.6 <sub>± 0.8</sub> |
+| CHORD | 47.3 <sub>± 0.8</sub> | **19.3** <sub>± 0.6</sub> | 46.3 <sub>± 3.4</sub> |
+| Two-stage | 47.9 <sub>± 0.7</sub> | 19.0 <sub>± 1.1</sub> | **48.5** <sub>± 0.8</sub> |
+
+<details>
+<summary>Commands</summary>
 
 ```bash
 medres train --task med_vqa --method opd --seed 42
 medres eval run --task med_vqa --model runs/med_vqa_opd_s42/checkpoint-300
 ```
 
-`--method adaopd` measures the gap, finds it below τ and keeps μ at 0.
+</details>
 
 ## Modality experts
 
@@ -182,50 +236,65 @@ Task `modality_experts`: the eight Med-R1 experts (one Qwen2-VL-2B per imaging m
 OmniMedVQA) are distilled back into the base Qwen2-VL-2B. Each prompt is scored by the expert of its modality. The
 protocol differs from the other tasks: 500 steps of 128 sequences, learning rate 5e-6, response limit 512 tokens.
 
-Three experts (CT, MRI, ultrasound) are far from the base model and five are close, so AdaOPD reads the outputs of the
-three far experts. Their gap closes quickly: μ is below 0.1 by step 17–20 and 0 from step 19–24 on, depending on the
-seed, and the rest of the run is OPD.
-
-| Method | OmniMedVQA accuracy (%) |
+| Method | OmniMedVQA accuracy ↑ |
 |:--|--:|
 | Offline KD | 94.28 |
-| OPD | 95.48 (seeds: 94.07–97.12) |
-| AdaOPD | 95.98 |
+| OPD | **95.48** |
 
-Means of three seeds, on the test questions with Med-R1's prompt. AdaOPD is within the range of OPD's seeds: imitating
-the far experts for the first steps costs nothing here.
+Means of three seeds, on the test questions with Med-R1's prompt. The three OPD seeds range from 94.07 to 97.12.
+
+<details>
+<summary>Commands</summary>
 
 ```bash
-medres train --task modality_experts --method adaopd --seed 42
-medres eval run --task modality_experts --model runs/modality_experts_adaopd_s42/checkpoint-500
+medres train --task modality_experts --method opd --seed 42
+medres eval run --task modality_experts --model runs/modality_experts_opd_s42/checkpoint-500
 ```
 
 In the recorded runs of this task the seed changed the sampling and initialization noise but not the order of the
 data. MedResidency also seeds the data order, so seeds 2 and 3 will not see the prompts in the recorded order.
 
+</details>
+
 ## A larger student
 
-The report task with Qwen3-VL-4B-Instruct as the student, on four 80 GB GPUs. Everything else is unchanged. The 4B
-student is further from the teacher than the 2B one (gap 3.66 nats), and validation selects τ = 0 for it
-([Selecting τ](#selecting-τ)).
+The report task with Qwen3-VL-4B-Instruct as the student, on four 80 GB GPUs. Everything else is unchanged.
 
-| Method | Seeds | MIMIC-CXR 1/RadCliQ | MIMIC-CXR RadGraph | MIMIC-CXR RaTE | MIMIC-CXR CheXbert-5 | MIMIC-CXR GREEN | IU X-ray 1/RadCliQ | IU X-ray RadGraph | IU X-ray RaTE | Trunc. (%) |
-|:--|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| General student (Qwen3-VL-4B) | – | 0.688 | 12.2 | 52.2 | 35.3 | 23.4 | 0.816 | 12.6 | 54.4 | 0.7 |
-| Specialized teacher (UniRG-CXR-8B) | – | 1.278 | 29.7 | 63.9 | 65.6 | 40.4 | 3.228 | 37.6 | 70.9 | 0.0 |
-| Offline KD | 3 | 0.898 ± 0.010 | 21.7 ± 0.2 | 58.1 ± 0.2 | 46.2 ± 3.1 | 31.5 ± 0.3 | 1.442 ± 0.038 | 25.0 ± 0.5 | 65.9 ± 0.6 | 2.8 ± 1.0 |
-| OPD | 3 | 0.525 ± 0.156 | 13.4 ± 4.7 | 50.7 ± 6.3 | 31.2 ± 7.9 | 18.2 ± 5.5 | 1.243 ± 0.715 | 26.4 ± 1.6 | 65.4 ± 3.4 | 66.9 ± 27.7 |
-| GKD | 3 | 0.923 ± 0.022 | 22.0 ± 0.2 | 58.6 ± 1.0 | 43.9 ± 6.4 | 30.6 ± 0.3 | 1.785 ± 0.114 | 28.0 ± 0.3 | 67.1 ± 0.8 | 1.1 ± 1.8 |
-| CHORD (fixed schedule) | 3 | 0.908 ± 0.037 | 22.0 ± 0.9 | **59.7** ± 0.7 | 52.9 ± 8.4 | **32.2** ± 0.2 | 1.666 ± 0.148 | 27.1 ± 1.4 | 67.6 ± 0.5 | 3.9 ± 3.6 |
-| CHORD-φ (authors' best variant) | 3 | 0.746 ± 0.066 | 19.2 ± 1.2 | 56.7 ± 1.0 | 32.4 ± 1.5 | 25.0 ± 3.0 | **1.890** ± 0.061 | **28.4** ± 0.1 | **68.2** ± 0.1 | 21.2 ± 13.1 |
-| Two-stage (offline KD → OPD) | 3 | 0.882 ± 0.008 | 21.1 ± 0.3 | 58.6 ± 0.5 | 44.0 ± 7.1 | 29.4 ± 0.9 | 1.499 ± 0.093 | 25.5 ± 0.5 | 66.5 ± 0.9 | 0.9 ± 1.0 |
-| AdaOPD (τ = 0 selected on validation) | 3 | **0.934** ± 0.022 | **22.1** ± 0.8 | 59.3 ± 0.6 | **54.1** ± 0.8 | 30.9 ± 0.7 | 1.676 ± 0.165 | 27.0 ± 1.3 | 67.2 ± 0.5 | **0.5** ± 0.6 |
+**MIMIC-CXR test**
+
+| Method | 1/RadCliQ ↑ | RadGraph ↑ | RaTE ↑ | CheXbert-5 ↑ | GREEN ↑ | Trunc. ↓ |
+|:--|--:|--:|--:|--:|--:|--:|
+| Teacher (UniRG-CXR-8B) | 1.278 | 29.7 | 63.9 | 65.6 | 40.4 | 0.0 |
+| Student before training (Qwen3-VL-4B) | 0.688 | 12.2 | 52.2 | 35.3 | 23.4 | 0.7 |
+| Offline KD | 0.898 <sub>± 0.010</sub> | 21.7 <sub>± 0.2</sub> | 58.1 <sub>± 0.2</sub> | 46.2 <sub>± 3.1</sub> | 31.5 <sub>± 0.3</sub> | 2.8 <sub>± 1.0</sub> |
+| OPD | 0.525 <sub>± 0.156</sub> | 13.4 <sub>± 4.7</sub> | 50.7 <sub>± 6.3</sub> | 31.2 <sub>± 7.9</sub> | 18.2 <sub>± 5.5</sub> | 66.9 <sub>± 27.7</sub> |
+| GKD | **0.923** <sub>± 0.022</sub> | **22.0** <sub>± 0.2</sub> | 58.6 <sub>± 1.0</sub> | 43.9 <sub>± 6.4</sub> | 30.6 <sub>± 0.3</sub> | 1.1 <sub>± 1.8</sub> |
+| CHORD | 0.908 <sub>± 0.037</sub> | **22.0** <sub>± 0.9</sub> | **59.7** <sub>± 0.7</sub> | **52.9** <sub>± 8.4</sub> | **32.2** <sub>± 0.2</sub> | 3.9 <sub>± 3.6</sub> |
+| CHORD-φ | 0.746 <sub>± 0.066</sub> | 19.2 <sub>± 1.2</sub> | 56.7 <sub>± 1.0</sub> | 32.4 <sub>± 1.5</sub> | 25.0 <sub>± 3.0</sub> | 21.2 <sub>± 13.1</sub> |
+| Two-stage | 0.882 <sub>± 0.008</sub> | 21.1 <sub>± 0.3</sub> | 58.6 <sub>± 0.5</sub> | 44.0 <sub>± 7.1</sub> | 29.4 <sub>± 0.9</sub> | **0.9** <sub>± 1.0</sub> |
+
+**IU X-ray test**
+
+| Method | 1/RadCliQ ↑ | RadGraph ↑ | RaTE ↑ |
+|:--|--:|--:|--:|
+| Teacher (UniRG-CXR-8B) | 3.228 | 37.6 | 70.9 |
+| Student before training (Qwen3-VL-4B) | 0.816 | 12.6 | 54.4 |
+| Offline KD | 1.442 <sub>± 0.038</sub> | 25.0 <sub>± 0.5</sub> | 65.9 <sub>± 0.6</sub> |
+| OPD | 1.243 <sub>± 0.715</sub> | 26.4 <sub>± 1.6</sub> | 65.4 <sub>± 3.4</sub> |
+| GKD | 1.785 <sub>± 0.114</sub> | 28.0 <sub>± 0.3</sub> | 67.1 <sub>± 0.8</sub> |
+| CHORD | 1.666 <sub>± 0.148</sub> | 27.1 <sub>± 1.4</sub> | 67.6 <sub>± 0.5</sub> |
+| CHORD-φ | **1.890** <sub>± 0.061</sub> | **28.4** <sub>± 0.1</sub> | **68.2** <sub>± 0.1</sub> |
+| Two-stage | 1.499 <sub>± 0.093</sub> | 25.5 <sub>± 0.5</sub> | 66.5 <sub>± 0.9</sub> |
+
+<details>
+<summary>Commands</summary>
 
 ```bash
-medres train configs/recipes/adaopd/cxr_report_4b.yaml --method gkd --seed 42      # any method
-medres train configs/recipes/adaopd/cxr_report_4b_adaopd.yaml --seed 42            # AdaOPD with τ = 0
-medres eval run --task cxr_report --model runs/cxr_report_4b_adaopd_s42/checkpoint-300 --green
+medres train configs/recipes/benchmark/cxr_report_4b.yaml --method gkd --seed 42      # any method
+medres eval run --task cxr_report --model runs/cxr_report_4b_gkd_s42/checkpoint-300 --green
 ```
+
+</details>
 
 ## A new teacher for a trained student
 
@@ -233,97 +302,79 @@ The student has already been trained: it is the OPD student of the [reasoning VQ
 teacher is now added, and training continues with both teachers on the mixed prompts of `cxr_report_vqa`. The report
 columns measure the new skill, the VQA columns the skill to keep.
 
-| Method | Seeds | 1/RadCliQ | RaTE | GREEN | IU 1/RadCliQ | PMC-VQA | MedXpertQA | MMMU-H&M |
-|:--|--:|--:|--:|--:|--:|--:|--:|--:|
-| VQA-trained student (Qwen3-VL-2B) | 3 | 0.570 ± 0.005 | 52.4 ± 0.2 | 21.9 ± 0.3 | 0.730 ± 0.003 | 48.3 ± 1.0 | 19.3 ± 1.3 | 44.9 ± 3.0 |
-| Specialized teachers (UniRG-CXR-8B / MediX-R1-8B) | – | 1.278 | 63.9 | 40.4 | 3.228 | 53.0 | 30.2 | 68.4 |
-| Offline KD | 3 | 0.784 ± 0.011 | 56.6 ± 0.1 | 27.8 ± 0.4 | 1.712 ± 0.268 | 45.9 ± 1.9 | 18.0 ± 0.3 | 42.4 ± 0.9 |
-| OPD | 3 | 0.505 ± 0.008 | 57.4 ± 0.1 | 28.6 ± 2.8 | 0.595 ± 0.036 | 48.1 ± 2.3 | 17.2 ± 1.1 | 44.6 ± 2.4 |
-| GKD | 3 | 0.855 ± 0.022 | 58.1 ± 0.6 | 29.3 ± 0.2 | **1.962** ± 0.022 | 47.2 ± 1.7 | 17.3 ± 1.4 | 44.4 ± 2.1 |
-| CHORD (fixed schedule) | 3 | 0.901 ± 0.024 | 58.2 ± 0.3 | 29.6 ± 1.5 | 1.724 ± 0.137 | 48.9 ± 0.7 | **20.6** ± 0.6 | 43.9 ± 3.0 |
-| Two-stage (offline KD → OPD) | 3 | 0.853 ± 0.036 | 58.0 ± 0.4 | 29.1 ± 1.4 | 1.935 ± 0.015 | 47.2 ± 0.7 | 18.7 ± 0.3 | 43.9 ± 1.2 |
-| AdaOPD | 3 | **0.916** ± 0.017 | **59.4** ± 0.6 | **30.5** ± 0.9 | 1.939 ± 0.001 | **49.8** ± 0.8 | 19.9 ± 0.8 | **48.3** ± 2.4 |
+| Method | MIMIC 1/RadCliQ ↑ | MIMIC RaTE ↑ | MIMIC GREEN ↑ | IU 1/RadCliQ ↑ | PMC-VQA ↑ | MedXpertQA ↑ | MMMU-H&M ↑ |
+|:--|--:|--:|--:|--:|--:|--:|--:|
+| Teachers (UniRG-CXR-8B, MediX-R1-8B) | 1.278 | 63.9 | 40.4 | 3.228 | 53.0 | 30.2 | 68.4 |
+| VQA-trained student (Qwen3-VL-2B) | 0.570 <sub>± 0.005</sub> | 52.4 <sub>± 0.2</sub> | 21.9 <sub>± 0.3</sub> | 0.730 <sub>± 0.003</sub> | 48.3 <sub>± 1.0</sub> | 19.3 <sub>± 1.3</sub> | 44.9 <sub>± 3.0</sub> |
+| Offline KD | 0.784 <sub>± 0.011</sub> | 56.6 <sub>± 0.1</sub> | 27.8 <sub>± 0.4</sub> | 1.712 <sub>± 0.268</sub> | 45.9 <sub>± 1.9</sub> | 18.0 <sub>± 0.3</sub> | 42.4 <sub>± 0.9</sub> |
+| OPD | 0.505 <sub>± 0.008</sub> | 57.4 <sub>± 0.1</sub> | 28.6 <sub>± 2.8</sub> | 0.595 <sub>± 0.036</sub> | 48.1 <sub>± 2.3</sub> | 17.2 <sub>± 1.1</sub> | **44.6** <sub>± 2.4</sub> |
+| GKD | 0.855 <sub>± 0.022</sub> | 58.1 <sub>± 0.6</sub> | 29.3 <sub>± 0.2</sub> | **1.962** <sub>± 0.022</sub> | 47.2 <sub>± 1.7</sub> | 17.3 <sub>± 1.4</sub> | 44.4 <sub>± 2.1</sub> |
+| CHORD | **0.901** <sub>± 0.024</sub> | **58.2** <sub>± 0.3</sub> | **29.6** <sub>± 1.5</sub> | 1.724 <sub>± 0.137</sub> | **48.9** <sub>± 0.7</sub> | **20.6** <sub>± 0.6</sub> | 43.9 <sub>± 3.0</sub> |
+| Two-stage | 0.853 <sub>± 0.036</sub> | 58.0 <sub>± 0.4</sub> | 29.1 <sub>± 1.4</sub> | 1.935 <sub>± 0.015</sub> | 47.2 <sub>± 0.7</sub> | 18.7 <sub>± 0.3</sub> | 43.9 <sub>± 1.2</sub> |
 
-On the trained student the report teacher's gap is 3.05 nats (seed 42), as large as on the untrained one, and the
-VQA teacher's is 0.44, below τ. AdaOPD therefore reads the report teacher's outputs only. CHORD and the two-stage
-recipe read the outputs of both teachers, which is the task's default.
+CHORD and the two-stage recipe read the outputs of both teachers, which is the task's default.
+
+<details>
+<summary>Commands</summary>
 
 ```bash
 medres train --task med_vqa --method opd --seed 42                                  # the trained student
-medres train configs/recipes/adaopd/new_teacher.yaml --method adaopd --seed 42
-medres eval run --task cxr_report_vqa --model runs/new_teacher_adaopd_s42/checkpoint-300 --green
+medres train configs/recipes/benchmark/new_teacher.yaml --method chord --seed 42
+medres eval run --task cxr_report_vqa --model runs/new_teacher_chord_s42/checkpoint-300 --green
 ```
 
 Each seed starts from the student of the same seed:
 
 ```bash
-medres train configs/recipes/adaopd/new_teacher.yaml --method adaopd --seed 2 \
+medres train configs/recipes/benchmark/new_teacher.yaml --method chord --seed 2 \
     student.init=runs/med_vqa_opd_s2/checkpoint-300
 ```
 
-## Ablations of AdaOPD
+</details>
 
-On the report task. Each row changes one component of AdaOPD and keeps the others.
+## Variants of OPD and CHORD
 
-| Variant | Loop | MIMIC-CXR 1/RadCliQ | Δ | IU X-ray 1/RadCliQ |
-|:--|--:|--:|--:|--:|
-| AdaOPD | 0 | 0.931 ± 0.005 | – | 1.950 ± 0.030 |
-| *Schedule of μ* (AdaOPD: from the measured gap) |  |  |  |  |
-| None, μ = 0 (OPD) | 12–24 | 0.726 ± 0.074 | -0.205 | 1.749 ± 0.094 |
-| Constant, μ = 0.27 | 10–12 | 0.926 ± 0.007 | -0.005 | 1.937 ± 0.021 |
-| Cosine over 300 steps (CHORD) | 0 | 0.913 ± 0.015 | -0.018 | 1.702 ± 0.227 |
-| Cosine over 100 steps | 0 | 0.924 ± 0.010 | -0.007 | 1.893 ± 0.050 |
-| Cosine over 50 steps | 0 | 0.860 ± 0.123 | -0.071 | 1.841 ± 0.153 |
-| CHORD authors' schedule | 0 | 0.897 ± 0.099 | -0.034 | 1.710 ± 0.414 |
-| *Signal behind μ* (AdaOPD: language gap on fresh tokens) |  |  |  |  |
-| Language gap on all tokens | 0 | 0.931 ± 0.030 | +0.000 | 1.941 ± 0.012 |
-| Reverse KL | 0 | 0.924 ± 0.020 | -0.007 | 1.895 ± 0.028 |
-| Reverse KL, τ = 1.44 | 0 | 0.920 ± 0.048 | -0.011 | 1.927 ± 0.010 |
-| *Smoothing and threshold* (AdaOPD: moving average, τ = 1) |  |  |  |  |
-| No moving average | 0 | 0.940 ± 0.025 | +0.010 | 1.926 ± 0.014 |
-| τ = 0.5 | 0 | 0.929 ± 0.015 | -0.002 | 1.936 ± 0.017 |
-| τ = 1.5 | 0 | 0.914 ± 0.016 | -0.017 | 1.959 ± 0.048 |
+On the report task. **Loop** is the longest run of consecutive training steps in which at least half of the rollouts
+reach the response limit (`completions/clipped_ratio` in `logging.jsonl`). A range is over the seeds.
 
-- **Loop** is the longest run of consecutive training steps in which at least half of the rollouts reach the
-  response limit. A range is over the seeds.
-- **Δ** is the difference to AdaOPD in MIMIC-CXR 1/RadCliQ, as the mean of the per-seed differences.
-- *Constant* uses AdaOPD's mean μ over training (0.27). *Cosine* decays μ from 1 to 0 over the given steps and trains
-  as OPD afterwards. The *CHORD authors' schedule* decays from 0.9 to 0.05 over 200 steps and stays at 0.05.
-- *Reverse KL* measures the gap against the teacher that sees the image, in place of the image-free teacher.
+**The schedule of the SFT weight μ.** The loss is (1 − μ) · OPD + μ · SFT on teacher outputs. A cosine schedule
+decays μ from 1 to 0 over the given steps, and the run trains as OPD afterwards.
+
+| Schedule of μ | Loop ↓ | MIMIC-CXR 1/RadCliQ ↑ | IU X-ray 1/RadCliQ ↑ |
+|:--|--:|--:|--:|
+| None, μ = 0 (OPD) | 12–24 | 0.726 <sub>± 0.074</sub> | 1.749 <sub>± 0.094</sub> |
+| Cosine over 300 steps (CHORD) | 0 | 0.913 <sub>± 0.015</sub> | 1.702 <sub>± 0.227</sub> |
+| Cosine over 100 steps | 0 | **0.924** <sub>± 0.010</sub> | **1.893** <sub>± 0.050</sub> |
+| Cosine over 50 steps | 0 | 0.860 <sub>± 0.123</sub> | 1.841 <sub>± 0.153</sub> |
+| From 0.9 to 0.05 over 200 steps, then 0.05 (the CHORD authors' schedule) | 0 | 0.897 <sub>± 0.099</sub> | 1.710 <sub>± 0.414</sub> |
+
+<details>
+<summary>Commands</summary>
 
 Every row is an override of one run. Give each variant its own `--name`, or it will collide with the default run:
 
 ```bash
-# schedule of μ
-medres train --task cxr_report --method chord method.peak=0.27 method.valley=0.27 --name cxr_report_constant_s42
 medres train --task cxr_report --method chord method.decay_steps=100 --name cxr_report_cosine100_s42
 medres train --task cxr_report --method chord method.decay_steps=50 --name cxr_report_cosine50_s42
 medres train --task cxr_report --method chord method.peak=0.9 method.valley=0.05 method.decay_steps=200 \
     --name cxr_report_chord_authors_s42
-
-# signal behind μ
-medres train --task cxr_report --method adaopd method.fresh_tokens=false --name cxr_report_adaopd_alltokens_s42
-medres train --task cxr_report --method adaopd method.signal=kl --name cxr_report_adaopd_kl_s42
-medres train --task cxr_report --method adaopd method.signal=kl method.tau=1.44 \
-    --name cxr_report_adaopd_kl_tau1.44_s42
-
-# smoothing and threshold
-medres train --task cxr_report --method adaopd method.ema=0 --name cxr_report_adaopd_noema_s42
-medres train --task cxr_report --method adaopd method.tau=0.5 --name cxr_report_adaopd_tau0.5_s42
-medres train --task cxr_report --method adaopd method.tau=1.5 --name cxr_report_adaopd_tau1.5_s42
 ```
 
-Three common remedies for a collapsing OPD run, without an SFT term:
+</details>
 
-| Variant | μ | Seeds | Loop | 1/RadCliQ | Δ | IU 1/RadCliQ | Trunc. (%) |
-|:--|--:|--:|--:|--:|--:|--:|--:|
-| AdaOPD (τ = 1) | measured | 3 | 0 | 0.931 ± 0.005 | – | 1.950 ± 0.030 | 0.8 ± 0.9 |
-| OPD | 0 | 3 | 12–24 | 0.726 ± 0.074 | -0.205 ± 0.070 | 1.749 ± 0.094 | 22.4 ± 18.3 |
-| OPD + repetition penalty 1.2 | 0 | 1 | 171 | 0.316 | -0.611 | 0.331 | 100.0 |
-| OPD, learning rate 1e-6 | 0 | 1 | 42 | 0.774 | -0.153 | 1.808 | 10.5 |
-| OPD + KL to the initial student | 0 | 1 | 22 | 0.823 | -0.104 | 1.974 | 4.1 |
+**Remedies for a collapsing OPD run**, without an SFT term. None of the three removes the loop.
 
-The rows with one seed are seed 42, and their Δ is against AdaOPD with the same seed.
+| Variant | Seeds | Loop ↓ | MIMIC-CXR 1/RadCliQ ↑ | IU X-ray 1/RadCliQ ↑ | Trunc. ↓ |
+|:--|--:|--:|--:|--:|--:|
+| OPD | 3 | 12–24 | 0.726 <sub>± 0.074</sub> | 1.749 <sub>± 0.094</sub> | 22.4 <sub>± 18.3</sub> |
+| OPD + repetition penalty 1.2 | 1 | 171 | 0.316 | 0.331 | 100.0 |
+| OPD, learning rate 1e-6 | 1 | 42 | 0.774 | 1.808 | 10.5 |
+| OPD + KL to the initial student | 1 | 22 | 0.823 | 1.974 | 4.1 |
+
+The rows with one seed are seed 42.
+
+<details>
+<summary>Commands</summary>
 
 ```bash
 medres train --task cxr_report --method opd method.repetition_penalty=1.2 --name cxr_report_opd_reppen_s42
@@ -334,86 +385,10 @@ medres train --task cxr_report --method opd train.swift_args.beta=0.04 --name cx
 The KL to the initial student has no key of its own: `beta` is the argument of ms-swift's trainer, passed through
 `train.swift_args`.
 
-## Selecting τ
+</details>
 
-AdaOPD has one hyper-parameter that matters, the gap threshold τ. Its default is 1 nat. The benchmark selects it on
-validation data only, never on a test set:
-
-- **Validation sets.** Reports: 500 studies of the official MIMIC-CXR validation split, scored by 1/RadCliQ. VQA: 1,000
-  PMC-VQA training questions that are not among the 20,000 training prompts, on figures that none of those prompts
-  uses (one question per figure).
-- **Rule, fixed before the runs.** The value with the highest validation mean over the selection seeds wins, but
-  τ = 1 is kept unless another value is better by more than 0.01 in 1/RadCliQ or one point of accuracy.
-
-| Setting | Validation metric | Seeds | τ = -0.5 | τ = 0 | τ = 0.3 | τ = 0.5 | τ = 1 | τ = 1.5 | Selected |
-|:--|:--|--:|--:|--:|--:|--:|--:|--:|--:|
-| Report generation, 2B student | 1/RadCliQ | 3 | – | – | – | 1.380 | **1.386** | 1.363 | 1 |
-| Report generation, 4B student | 1/RadCliQ | 2 | 1.409 | **1.424** | – | 1.402 | 1.397 | – | 0 |
-| Long-reasoning VQA | PMC-VQA acc. | 2 | – | – | 44.9 | – | **46.9** | – | 1 |
-
-A dash marks a value outside the grid of that setting. The grid was run on the first two seeds (4B student, VQA) or
-all three (2B student).
-
-```bash
-medres train --task cxr_report --method adaopd method.tau=0.5 --name cxr_report_adaopd_tau0.5_s42
-medres eval run --task cxr_report --model runs/cxr_report_adaopd_tau0.5_s42/checkpoint-300 --split validation
-```
-
-Baselines run at their authors' settings. If you tune a baseline, tune it on the same validation set and say so.
-
-## Gap atlas
-
-The gap probe measures a teacher-student pair before any training. The untrained student writes responses to training
-prompts, and both models score them:
-
-- **ĝ**, the language gap: log p_student(y) − log p_teacher(y | no image), in nats per fresh token. It says how far
-  the student's text is from text the teacher would write.
-- **ē**, the visual evidence: log p_teacher(y | image) − log p_teacher(y | no image), averaged over the same tokens.
-
-The table gives ĝ on responses sampled at temperature 1 and on greedy responses, and ē on the sampled ones. Bold marks
-ĝ above τ = 1, where AdaOPD starts with SFT on teacher outputs. Teacher and student share a tokenizer in every pair.
-
-| Teacher | Student | ĝ (sampled) | ĝ (greedy) | ē (sampled) |
-|:--|:--|--:|--:|--:|
-| *Chest X-ray reports (MIMIC-CXR training studies)* |  |  |  |  |
-| UniRG-CXR-8B | Qwen3-VL-2B | **3.05** | 3.04 | -0.44 |
-| UniRG-CXR-8B | Qwen3-VL-4B | **3.66** | 3.69 | -0.52 |
-| QoQ-Med3-VL-8B | Qwen3-VL-2B | **1.07** | 1.03 | +0.18 |
-| Lingshu-7B | Qwen2.5-VL-3B | 0.52 | 0.37 | -0.19 |
-| NV-Reason-CXR-3B | Qwen2.5-VL-3B | **2.04** | 1.29 | -0.10 |
-| Qwen2.5-VL-7B (general) | Qwen2.5-VL-3B | 0.47 | 0.41 | +0.07 |
-| *Medical VQA* |  |  |  |  |
-| MediX-R1-8B, PMC-VQA | Qwen3-VL-2B | 0.64 | 0.75 | +0.11 |
-| QoQ-Med3-VL-8B, PMC-VQA | Qwen3-VL-2B | 0.80 | 0.76 | +0.12 |
-| SonoReasoner-8B, ultrasound | Qwen3-VL-2B | 0.51 | 0.64 | +0.04 |
-| *Med-R1 modality experts (OmniMedVQA)* |  |  |  |  |
-| Med-R1 CT | Qwen2-VL-2B | **3.59** | 3.70 | -0.05 |
-| Med-R1 MRI | Qwen2-VL-2B | **2.92** | 3.09 | -0.03 |
-| Med-R1 ultrasound | Qwen2-VL-2B | **2.99** | 4.38 | -0.16 |
-| Med-R1 X-ray | Qwen2-VL-2B | 0.22 | 0.32 | +0.13 |
-| Med-R1 dermoscopy | Qwen2-VL-2B | 0.18 | 0.27 | +0.10 |
-| Med-R1 fundus | Qwen2-VL-2B | 0.21 | 0.29 | +0.11 |
-| Med-R1 microscopy | Qwen2-VL-2B | 0.17 | 0.32 | +0.08 |
-| Med-R1 OCT | Qwen2-VL-2B | 0.15 | 0.22 | +0.08 |
-
-Each pair was probed on 128 training prompts (32 per Med-R1 expert).
-
-```bash
-medres probe gap --data data/cxr_report/train.jsonl --student models/Qwen3-VL-2B-Instruct \
-    --teacher models/UniRG-CXR --out probes/unirg_qwen3vl2b
-medres probe gap --data data/med_vqa/train.jsonl --student models/Qwen3-VL-2B-Instruct \
-    --teacher models/MediX-R1-8B --max-new-tokens 2048 --out probes/medix_qwen3vl2b
-medres probe gap --data data/modality_experts/train.jsonl --tag CT --n 32 --student models/Qwen2-VL-2B-Instruct \
-    --teacher models/Med-R1/VQA_CT --out probes/medr1_ct
-```
-
-The probe takes model directories, so a pair does not have to be registered in `configs/models.yaml`: the Qwen2.5-VL
-rows were measured that way. SonoReasoner's ultrasound questions are the one prompt set of the table that
-MedResidency does not build.
-
-A large gap at the start does not by itself predict a collapse. Three modality experts start around 3 nats and OPD
-trains fine, because there the gap closes early in training. With the report teacher it stays above τ, and OPD loops.
-To watch the gap during an OPD run without changing the training, add `method.monitor_gap=true`.
+Baselines run at their authors' settings. If you tune a baseline, tune it on a validation set
+([evaluation.md](../docs/evaluation.md#validation)), never on a test set, and say so.
 
 ## Comparing two runs
 
@@ -421,7 +396,7 @@ To watch the gap during an OPD run without changing the training, add `method.mo
 gives the paired difference with a 95% bootstrap interval (1,000 resamples):
 
 ```bash
-medres stats compare evals/cxr_report_adaopd_s42/checkpoint-300/mimic_cxr.scores.jsonl \
+medres stats compare evals/cxr_report_gkd_s42/checkpoint-300/mimic_cxr.scores.jsonl \
     evals/cxr_report_chord_s42/checkpoint-300/mimic_cxr.scores.jsonl \
     --metric inv_radcliq --cluster-data data/cxr_report/test_mimic.jsonl
 
@@ -452,6 +427,9 @@ baselines. Open a pull request that adds the row and gives
 
 Send aggregates only. Reports generated for MIMIC-CXR studies are credentialed data under the PhysioNet agreement and
 must not be uploaded, and neither should per-study scores or logs that contain report text.
+
+The figure at the top of this page is drawn from the two tables of [Report generation](#report-generation). After
+changing them, run `python scripts/plot_benchmark.py` and commit the two files it writes.
 
 The method `grpo` (reinforcement learning with a task reward, `medres list rewards`) is implemented but has no row
 yet. It is a good place to start.

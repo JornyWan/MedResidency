@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DIRS = ("data", "models", "runs", "evals", "logs", "raw", "gen", "probes")  # at the top of the repository
+DIRS = ("data", "models", "runs", "evals", "logs", "raw", "gen")  # at the top of the repository
 SUFFIXES = (".jsonl", ".safetensors", ".bin", ".pt", ".ckpt", ".parquet", ".jpg", ".jpeg", ".png", ".dcm", ".log")
 MAX_BYTES = 1_000_000
 PRIVATE_PATH = r"/(?:home|Users|scratch)/\w"

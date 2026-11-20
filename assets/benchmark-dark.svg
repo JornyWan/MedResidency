@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 320" width="880" height="320" role="img" aria-labelledby="title desc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" style="font-variant-numeric: tabular-nums">
+<title id="title">Report generation benchmark</title>
+<desc id="desc">1/RadCliQ on MIMIC-CXR and IU X-ray and the share of truncated reports, for the teacher, the trained methods and the student before training. The numbers are in benchmarks/README.md.</desc>
+<text x="168" y="65.5" font-size="13" text-anchor="end" fill="#9198A1">Teacher</text>
+<text x="168" y="91.5" font-size="13" text-anchor="end" fill="#F0F6FC">GKD</text>
+<text x="168" y="117.5" font-size="13" text-anchor="end" fill="#F0F6FC">CHORD</text>
+<text x="168" y="143.5" font-size="13" text-anchor="end" fill="#F0F6FC">Two-stage</text>
+<text x="168" y="169.5" font-size="13" text-anchor="end" fill="#F0F6FC">Offline KD</text>
+<text x="168" y="195.5" font-size="13" text-anchor="end" fill="#F0F6FC">Label SFT</text>
+<text x="168" y="221.5" font-size="13" text-anchor="end" fill="#F0F6FC">CHORD-φ</text>
+<text x="168" y="247.5" font-size="13" text-anchor="end" fill="#F0F6FC">OPD</text>
+<text x="168" y="273.5" font-size="13" text-anchor="end" fill="#9198A1">Student before training</text>
+<text x="180" y="16" font-size="13" font-weight="600" fill="#F0F6FC">MIMIC-CXR</text>
+<text x="180" y="33" font-size="11.5" fill="#9198A1">1/RadCliQ, higher is better</text>
+<path d="M179.5,48 v234" stroke="#3D444D"/>
+<path d="M180,54 h164.7 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-164.7 z" fill="#606873"/>
+<text x="394.7" y="65.2" text-anchor="end" fill="#9198A1">1.278</text>
+<path d="M180,80 h117.3 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-117.3 z" fill="#12AB9B"/>
+<path d="M299.6,87 H303 M299.6,84 v6 M303,84 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="394.7" y="91.2" text-anchor="end" fill="#F0F6FC" font-weight="600">0.919</text>
+<path d="M180,106 h116.5 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-116.5 z" fill="#12AB9B"/>
+<path d="M298.5,113 H302.5 M298.5,110 v6 M302.5,110 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="394.7" y="117.2" text-anchor="end" fill="#F0F6FC">0.913</text>
+<path d="M180,132 h113.7 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-113.7 z" fill="#12AB9B"/>
+<path d="M293.2,139 H302.2 M293.2,136 v6 M302.2,136 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="394.7" y="143.2" text-anchor="end" fill="#F0F6FC">0.892</text>
+<path d="M180,158 h107 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-107 z" fill="#12AB9B"/>
+<path d="M288.5,165 H293.5 M288.5,162 v6 M293.5,162 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="394.7" y="169.2" text-anchor="end" fill="#F0F6FC">0.841</text>
+<path d="M180,184 h104 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-104 z" fill="#12AB9B"/>
+<path d="M286,191 H289.9 M286,188 v6 M289.9,188 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="394.7" y="195.2" text-anchor="end" fill="#F0F6FC">0.818</text>
+<path d="M180,210 h93.9 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-93.9 z" fill="#12AB9B"/>
+<path d="M260.9,217 H295 M260.9,214 v6 M295,214 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="394.7" y="221.2" text-anchor="end" fill="#F0F6FC">0.742</text>
+<path d="M180,236 h91.8 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-91.8 z" fill="#12AB9B"/>
+<path d="M266,243 H285.6 M266,240 v6 M285.6,240 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="394.7" y="247.2" text-anchor="end" fill="#F0F6FC">0.726</text>
+<path d="M180,262 h68.3 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-68.3 z" fill="#606873"/>
+<text x="394.7" y="273.2" text-anchor="end" fill="#9198A1">0.548</text>
+<text x="422.7" y="16" font-size="13" font-weight="600" fill="#F0F6FC">IU X-ray</text>
+<text x="422.7" y="33" font-size="11.5" fill="#9198A1">1/RadCliQ, higher is better</text>
+<path d="M422.2,48 v234" stroke="#3D444D"/>
+<path d="M422.7,54 h164.7 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-164.7 z" fill="#606873"/>
+<text x="637.3" y="65.2" text-anchor="end" fill="#9198A1">3.228</text>
+<path d="M422.7,80 h94.9 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-94.9 z" fill="#12AB9B"/>
+<path d="M515.8,87 H527.2 M515.8,84 v6 M527.2,84 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="637.3" y="91.2" text-anchor="end" fill="#F0F6FC" font-weight="600">1.892</text>
+<path d="M422.7,106 h84.9 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-84.9 z" fill="#12AB9B"/>
+<path d="M499.7,113 H523.5 M499.7,110 v6 M523.5,110 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="637.3" y="117.2" text-anchor="end" fill="#F0F6FC">1.702</text>
+<path d="M422.7,132 h77.7 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-77.7 z" fill="#12AB9B"/>
+<path d="M495.1,139 H513.5 M495.1,136 v6 M513.5,136 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="637.3" y="143.2" text-anchor="end" fill="#F0F6FC">1.563</text>
+<path d="M422.7,158 h71.3 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-71.3 z" fill="#12AB9B"/>
+<path d="M494.4,165 H501.5 M494.4,162 v6 M501.5,162 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="637.3" y="169.2" text-anchor="end" fill="#F0F6FC">1.441</text>
+<path d="M422.7,184 h77 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-77 z" fill="#12AB9B"/>
+<path d="M491.5,191 H515.9 M491.5,188 v6 M515.9,188 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="637.3" y="195.2" text-anchor="end" fill="#F0F6FC">1.551</text>
+<path d="M422.7,210 h87.2 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-87.2 z" fill="#12AB9B"/>
+<path d="M505.7,217 H522.1 M505.7,214 v6 M522.1,214 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="637.3" y="221.2" text-anchor="end" fill="#F0F6FC">1.746</text>
+<path d="M422.7,236 h87.4 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-87.4 z" fill="#12AB9B"/>
+<path d="M509.1,243 H519 M509.1,240 v6 M519,240 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="637.3" y="247.2" text-anchor="end" fill="#F0F6FC">1.749</text>
+<path d="M422.7,262 h31.4 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-31.4 z" fill="#606873"/>
+<text x="637.3" y="273.2" text-anchor="end" fill="#9198A1">0.678</text>
+<text x="665.3" y="16" font-size="13" font-weight="600" fill="#F0F6FC">Truncated reports</text>
+<text x="665.3" y="33" font-size="11.5" fill="#9198A1">% on MIMIC-CXR, lower is better</text>
+<path d="M664.8,48 v234" stroke="#3D444D"/>
+<text x="880" y="65.2" text-anchor="end" fill="#9198A1">0.0</text>
+<text x="880" y="91.2" text-anchor="end" fill="#F0F6FC" font-weight="600">0.0</text>
+<path d="M665.3,106 h1.6 a1.6,1.6 0 0 1 1.6,1.6 v10.9 a1.6,1.6 0 0 1 -1.6,1.6 h-1.6 z" fill="#12AB9B"/>
+<path d="M667.7,113 H669.2 M667.7,110 v6 M669.2,110 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="880" y="117.2" text-anchor="end" fill="#F0F6FC">1.2</text>
+<path d="M665.3,132 h4.8 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-4.8 z" fill="#12AB9B"/>
+<path d="M665.3,139 H688.4 M665.3,136 v6 M688.4,136 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="880" y="143.2" text-anchor="end" fill="#F0F6FC">3.4</text>
+<path d="M665.3,158 h13.9 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-13.9 z" fill="#12AB9B"/>
+<path d="M676.2,165 H690.2 M676.2,162 v6 M690.2,162 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="880" y="169.2" text-anchor="end" fill="#F0F6FC">6.9</text>
+<path d="M665.3,184 h6.6 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-6.6 z" fill="#12AB9B"/>
+<path d="M669,191 H683 M669,188 v6 M683,188 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="880" y="195.2" text-anchor="end" fill="#F0F6FC">4.1</text>
+<path d="M665.3,210 h67.2 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-67.2 z" fill="#12AB9B"/>
+<path d="M665.3,217 H834 M665.3,214 v6 M834,214 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="880" y="221.2" text-anchor="end" fill="#F0F6FC">27.5</text>
+<path d="M665.3,236 h54 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-54 z" fill="#12AB9B"/>
+<path d="M676,243 H770.8 M676,240 v6 M770.8,240 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="880" y="247.2" text-anchor="end" fill="#F0F6FC">22.4</text>
+<path d="M665.3,262 h122.7 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-122.7 z" fill="#606873"/>
+<text x="880" y="273.2" text-anchor="end" fill="#9198A1">48.9</text>
+<rect x="180" y="296.5" width="11" height="11" rx="2" fill="#12AB9B"/>
+<text x="200" y="306" font-size="11.5" fill="#9198A1">Trained student, mean of three seeds</text>
+<path d="M436,302 H450 M436,299 v6 M450,299 v6" stroke="#F0F6FC" stroke-width="1.2" fill="none"/>
+<text x="456" y="306" font-size="11.5" fill="#9198A1">± one standard deviation</text>
+<rect x="616" y="296.5" width="11" height="11" rx="2" fill="#606873"/>
+<text x="636" y="306" font-size="11.5" fill="#9198A1">Reference: teacher, untrained student</text>
+</svg>

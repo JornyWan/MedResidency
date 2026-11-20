@@ -38,7 +38,7 @@ hyper-parameters. A new method is then compared with numbers copied from another
 much of a difference comes from the method. In MedResidency a run is a **task**, a **method** and a **seed**:
 
 ```bash
-medres train --task cxr_report --method adaopd --seed 42
+medres train --task cxr_report --method gkd --seed 42
 ```
 
 The task fixes the student, the teachers, the data, the training budget and the evaluation. The method only changes
@@ -47,8 +47,8 @@ exact commands it executed.
 
 ## Highlights
 
-- **Nine methods on one protocol.** Label SFT, offline distillation, on-policy distillation with one or several
-  teachers, GKD, two-stage training, CHORD, CHORD-φ, AdaOPD and GRPO share the student, the data, the budget and the
+- **Eight methods on one protocol.** Label SFT, offline distillation, on-policy distillation with one or several
+  teachers, GKD, two-stage training, CHORD, CHORD-φ and GRPO share the student, the data, the budget and the
   evaluation of a task.
 - **Four medical tasks.** Chest X-ray report generation, reasoning VQA, both at once with two teachers, and eight
   modality experts distilled into one student.
@@ -61,8 +61,6 @@ exact commands it executed.
   commit of the code to `<run>/medres/`.
 - **Evaluation included.** The report metrics (RadCliQ-v1, RadGraph-F1, RaTEScore, CheXbert, GREEN), VQA accuracy,
   and paired bootstrap comparisons of two runs.
-- **A gap probe.** It measures, on one GPU and before any training, how far a student's language is from a
-  teacher's. This is the quantity AdaOPD steers by, and the benchmark lists it for 17 teacher–student pairs.
 - **A benchmark with its commands.** The result of every method on every task, and the command behind each row.
 - **No trainer of its own.** Training and the teacher servers are [ms-swift](https://github.com/modelscope/ms-swift)'s
   and sampling is [vLLM](https://github.com/vllm-project/vllm)'s. A method is one YAML file and one short function.
@@ -117,7 +115,6 @@ run on 48 GB cards. [docs/concepts.md](docs/concepts.md) describes the layout an
 | Two-stage | `two_stage` | offline distillation, then OPD |
 | CHORD | `chord` | SFT on teacher answers that fades into OPD |
 | CHORD-φ | `chord_phi` | OPD with a small token-weighted SFT term |
-| AdaOPD | `adaopd` | OPD and SFT on teacher answers, mixed by a measured gap |
 | GRPO | `grpo` | a task reward, without a teacher |
 
 ## Tasks
@@ -149,24 +146,21 @@ or a test set.
 
 ## Benchmark
 
-Report generation on MIMIC-CXR, 2B student, 8B teacher, three seeds per method. Higher 1/RadCliQ is better;
-"Trunc." is the share of test reports that run into the generation limit, which is what a student that has collapsed
-into repetition does.
+<p align="center">
+  <a href="benchmarks/README.md">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/benchmark-dark.svg">
+      <img src="assets/benchmark-light.svg" alt="Report generation: 1/RadCliQ and truncated reports of every method" width="880">
+    </picture>
+  </a>
+</p>
 
-| Method | MIMIC-CXR 1/RadCliQ | IU X-ray 1/RadCliQ | Trunc. (%) |
-|:--|--:|--:|--:|
-| Student before training | 0.548 | 0.678 | 48.9 |
-| Teacher | 1.278 | 3.228 | 0.0 |
-| Label SFT | 0.818 ± 0.015 | 1.551 ± 0.234 | 4.1 ± 2.7 |
-| Offline KD | 0.841 ± 0.019 | 1.441 ± 0.068 | 6.9 ± 2.7 |
-| OPD | 0.726 ± 0.074 | 1.749 ± 0.094 | 22.4 ± 18.3 |
-| GKD | 0.919 ± 0.013 | 1.892 ± 0.109 | 0.0 ± 0.0 |
-| CHORD | 0.913 ± 0.015 | 1.702 ± 0.227 | 1.2 ± 0.3 |
-| CHORD-φ | 0.742 ± 0.129 | 1.746 ± 0.157 | 27.5 ± 37.6 |
-| Two-stage | 0.892 ± 0.034 | 1.563 ± 0.176 | 3.4 ± 5.5 |
-| AdaOPD | **0.931** ± 0.005 | **1.950** ± 0.030 | 0.8 ± 0.9 |
+Chest X-ray report generation with a 2B student and an 8B teacher; a bar is the mean of three seeds. 1/RadCliQ is the
+headline report metric. A report is truncated when it runs into the generation limit, which is what a student that
+has collapsed into repetition does: plain OPD collapses on some seeds of this task, and GKD, CHORD and the two-stage
+recipe do not.
 
-All tables, the other tasks, the ablations and the reproduction commands are in
+The tables behind the figure, the other five settings and the command for every row are in
 [benchmarks/README.md](benchmarks/README.md). That page also says where the numbers come from and what has been
 checked.
 
@@ -199,7 +193,7 @@ come from TRL, LLaMA-Factory, verl, lmms-eval and rl-baselines3-zoo, and what wa
 | [Methods](docs/methods.md) | what each method optimizes and which keys it has |
 | [Tasks](docs/tasks.md) | the four built-in tasks |
 | [Data](docs/data.md) | sources, licences, builders, file formats |
-| [Evaluation](docs/evaluation.md) | scoring, comparing runs, the gap probe |
+| [Evaluation](docs/evaluation.md) | scoring, validation, comparing runs |
 | [Extending](docs/extending.md) | adding a model, a task, a method, a reward or a test set |
 | [Troubleshooting](docs/troubleshooting.md) | failures we ran into, and their fixes |
 | [Design](docs/design.md) | what the framework borrows from general-domain ones, and what it leaves out |
@@ -221,8 +215,8 @@ contributed as aggregate numbers together with the configuration that produced t
 
 ## Citation
 
-The paper that introduces AdaOPD and the benchmark is under review. Until it is public, please cite the software.
-GitHub's "Cite this repository" button gives the same entry from [CITATION.cff](CITATION.cff).
+If you use MedResidency, please cite the software. GitHub's "Cite this repository" button gives the same entry
+from [CITATION.cff](CITATION.cff).
 
 ```bibtex
 @software{medresidency,

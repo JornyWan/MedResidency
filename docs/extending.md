@@ -46,8 +46,7 @@ Three things to keep in mind:
 - **The tag stays, the model changes.** The rows of `train.jsonl` name their teacher by a tag (`unirg`), and
   `teachers` maps the tag to a model. Replacing the model under the same tag needs no new prompt file.
 - **A new teacher needs its own teacher outputs** for the methods that read them
-  ([data.md](data.md#teacher-outputs)), and it has its own gap to the student
-  ([evaluation.md](evaluation.md#the-gap-probe)).
+  ([data.md](data.md#teacher-outputs)).
 - **Teacher and student must share a tokenizer.** The teacher scores the student's tokens one by one, so in
   practice a teacher is a fine-tuned member of the student's model family.
 
@@ -122,18 +121,11 @@ medres data teacher-outputs --prompts data/us_vqa/train.jsonl --generations gen/
     --out data/us_vqa/train_teacher.jsonl
 ```
 
-**5. Measure the gap** of the pair, which tells you what to expect from plain OPD:
-
-```bash
-medres probe gap --data data/us_vqa/train.jsonl --student models/Qwen3-VL-2B-Instruct \
-    --teacher models/SonoReasoner-8B --max-new-tokens 1024 --out probes/sono_qwen3vl2b
-```
-
 After that the task trains and evaluates like the built-in ones:
 
 ```bash
-medres train --task us_vqa --method adaopd --seed 42
-medres eval run --task us_vqa --model runs/us_vqa_adaopd_s42/checkpoint-300
+medres train --task us_vqa --method chord --seed 42
+medres eval run --task us_vqa --model runs/us_vqa_chord_s42/checkpoint-300
 ```
 
 Choose the budget with the comparison in mind. Everything in the task file is shared by all methods, so a task
@@ -195,8 +187,9 @@ to start around it (`teachers`, `reward_server`). A builder changes a stage by e
 becomes a `--key value` of the training command. `stage.env` holds environment variables for the trainer.
 
 Code that has to run inside the trainer goes into a plugin, a Python file that ms-swift imports at start
-(`stage.args["external_plugins"]`). `plugins/adaopd_plugin.py` is the example: it reads its settings from
-`MEDRES_ADAOPD_*` variables, which the `adaopd` builder puts into `stage.env`.
+(`stage.args["external_plugins"]`). `src/medresidency/plugins/reward_plugin.py` is the example: it registers the
+task rewards of GRPO, and the `grpo` builder names the file and the reward in the stage's arguments. Settings a
+plugin needs can be passed as environment variables in `stage.env`.
 
 Two conventions:
 

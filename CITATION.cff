@@ -1,8 +1,6 @@
 cff-version: 1.2.0
 title: "MedResidency: open post-training of medical vision-language models"
-message: >-
-  If you use this software, please cite it as below. The paper that introduces AdaOPD and the benchmark in
-  benchmarks/README.md is under review; its reference will be added here.
+message: If you use this software, please cite it as below.
 type: software
 authors:
   - name: "The MedResidency authors"

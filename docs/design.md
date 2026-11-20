@@ -38,7 +38,7 @@ attempt at the shared piece: the tasks, the baselines and the evaluation that a 
 ## Non-goals
 
 - **A new trainer.** On-policy distillation with teacher servers is available in ms-swift, TRL and verl. What
-  MedResidency contributes is the medical protocol around it, the benchmark, AdaOPD and the gap probe.
+  MedResidency contributes is the medical protocol around it and the benchmark.
 - **Pre-training, or a model zoo.** The models are other people's releases, used under their terms.
 - **A leaderboard of foundation models.** The benchmark compares methods at a fixed student, not models.
 - **Scale.** A run uses the GPUs of one node. Students of 2B and 4B parameters and teachers of up to 8B are what
@@ -66,8 +66,9 @@ only needs a model directory.
 **Wrap ms-swift; do not fork it.** It already has a GRPO trainer with a per-token teacher term and CHORD, a GKD
 trainer, rollouts with a colocated vLLM engine, and teachers behind an OpenAI-compatible API. Writing this again
 would have been the largest part of the project and the least interesting. The price is a pinned version (4.6.0)
-and two small patches. `scripts/install_train_env.sh` applies them and stops if one no longer fits. AdaOPD lives in
-a plugin file that ms-swift imports, not in a patch.
+and two small patches. `scripts/install_train_env.sh` applies them and stops if one no longer fits. Code of our own
+that runs inside the trainer, the task rewards of GRPO, lives in a plugin file that ms-swift imports, not in a
+patch.
 
 **A task is more than a dataset.** Budget, response limit and learning rate decide the ranking of methods as much as
 the data do, so they belong to the task. The alternative, a dataset registry plus free hyper-parameters, is more
@@ -104,7 +105,7 @@ them should not have to learn new habits.
 
 | Convention | Seen in | Here |
 |:--|:--|:--|
-| one sub-command per job | [TRL](https://huggingface.co/docs/trl/clis) (`trl sft`), [ms-swift](https://github.com/modelscope/ms-swift) (`swift sft`, `swift rlhf`, `swift deploy`) | `medres train`, `medres eval`, `medres data`, `medres probe`, `medres stats`, `medres list` |
+| one sub-command per job | [TRL](https://huggingface.co/docs/trl/clis) (`trl sft`), [ms-swift](https://github.com/modelscope/ms-swift) (`swift sft`, `swift rlhf`, `swift deploy`) | `medres train`, `medres eval`, `medres data`, `medres stats`, `medres list` |
 | `key=value` overrides on top of YAML defaults | [verl](https://github.com/volcengine/verl) and [EasyR1](https://github.com/hiyouga/EasyR1) | the last layer of the configuration |
 | one YAML file per run worth repeating | [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory) (`llamafactory-cli train examples/...yaml`) | `configs/recipes/` |
 | tasks as YAML files selected by name | [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval) (`--tasks`) | `configs/tasks/`, `medres list tasks` |

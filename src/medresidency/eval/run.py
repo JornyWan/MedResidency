@@ -1,7 +1,7 @@
 """Evaluate a model or checkpoint on the test sets of a task: generate, score, summarize.
 
-    medres eval run --task cxr_report --model runs/cxr_report_adaopd_s42/checkpoint-300 [--green]
-    medres eval run --task cxr_report --model runs/cxr_report_adaopd_s42/checkpoint-300 --split validation
+    medres eval run --task cxr_report --model runs/cxr_report_gkd_s42/checkpoint-300 [--green]
+    medres eval run --task cxr_report --model runs/cxr_report_gkd_s42/checkpoint-300 --split validation
 
 1. `medres eval generate` on every test set, with the generation settings of the task (configs/tasks/<task>.yaml).
    Generation runs in a process of its own, so that the GPU is free again for the metrics; test sets with the same

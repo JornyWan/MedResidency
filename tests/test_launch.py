@@ -121,11 +121,10 @@ def test_environment_keeps_what_the_caller_set(monkeypatch):
     [
         (
             "cxr_report",
-            "adaopd",
+            "chord",
             [
                 "# teacher unirg",
                 "CUDA_VISIBLE_DEVICES=2,3",
-                "MEDRES_ADAOPD_TAU=1.0",
                 "NPROC_PER_NODE=2",
                 "--chord_sft_dataset data/cxr_report/train_teacher.jsonl",
                 "swift.cli.main rlhf",
@@ -169,7 +168,7 @@ def test_reward_server_needs_the_metrics_environment(capsys, monkeypatch):
 def test_cli_list_and_errors(capsys):
     cli.main(["list"])
     out = capsys.readouterr().out
-    for word in ("cxr_report", "adaopd", "qwen3-vl-2b", "report_radcliq"):
+    for word in ("cxr_report", "chord_phi", "qwen3-vl-2b", "report_radcliq"):
         assert word in out
     with pytest.raises(SystemExit, match="unknown configuration keys: train.learning_rate"):
         cli.main(["train", "--task", "cxr_report", "--method", "opd", "train.learning_rate=1"])
@@ -191,7 +190,7 @@ def test_refuses_to_overwrite_a_finished_run(tmp_path):
 def test_refuses_to_start_without_the_training_files(tmp_path, monkeypatch):
     monkeypatch.setenv("MEDRES_DATA", str(tmp_path / "data"))
     monkeypatch.delenv("CUDA_VISIBLE_DEVICES", raising=False)
-    cfg = config.load("cxr_report", "adaopd", overrides=[f"run.output_root={tmp_path}/runs"])
+    cfg = config.load("cxr_report", "chord", overrides=[f"run.output_root={tmp_path}/runs"])
     with pytest.raises(launch.LaunchError, match=r"not found: \S+/cxr_report/train.jsonl, \S+/train_teacher.jsonl"):
         launch.run(cfg)
     assert not (tmp_path / "runs").exists()  # nothing was started

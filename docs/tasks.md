@@ -25,8 +25,8 @@ every method on every task are on the [benchmark page](../benchmarks/README.md).
 ## `cxr_report`: chest X-ray report generation
 
 A general 2B student learns to write the findings and the impression of a chest X-ray from UniRG-CXR, an 8B report
-specialist. The specialist writes in the register of radiology reports, which the student does not: this is the
-task with a large language gap (3.05 nats), and the one on which plain OPD collapses into repetition.
+specialist. The specialist writes in the register of radiology reports, which the student does not, and this is
+the task on which plain OPD often ends in repeated text.
 
 | File in `data/cxr_report/` | Content |
 |:--|:--|
@@ -42,8 +42,8 @@ prompt is UniRG-CXR's findings-and-impression template, with the indication and 
 context. Reports are scored on findings and impression together; the headline metric is 1/RadCliQ-v1.
 
 ```bash
-medres train --task cxr_report --method adaopd --seed 42
-medres eval run --task cxr_report --model runs/cxr_report_adaopd_s42/checkpoint-300 --green
+medres train --task cxr_report --method gkd --seed 42
+medres eval run --task cxr_report --model runs/cxr_report_gkd_s42/checkpoint-300 --green
 ```
 
 MIMIC-CXR is credentialed. Only `test_iu.jsonl` can be built without PhysioNet access, which is enough to evaluate
@@ -55,8 +55,7 @@ The same student learns from MediX-R1-8B, a reasoning teacher, on multiple-choic
 biomedical papers. Every prompt asks for step-by-step reasoning and for the letter of the answer inside
 `<answer></answer>`, so responses are long: the limit is 2,048 tokens.
 
-Student and teacher start close to each other here (0.64 nats, below AdaOPD's threshold). This is the control
-task: plain OPD works, and AdaOPD measures the gap and trains exactly as OPD.
+Student and teacher start close to each other here, and plain OPD works well: this is the control task.
 
 | File in `data/med_vqa/` | Content |
 |:--|:--|
@@ -90,20 +89,17 @@ student has to learn both skills at once, from two teachers that are at very dif
 The task has no test files of its own. It is evaluated on the five test sets of the two single-teacher tasks, each
 generated with the settings of its own task (`eval.test_from` in the task file).
 
-Two methods get their own settings on this task, in the `overrides` block of the task file:
-
-- `adaopd` measures the gap on the report teacher's rows only, and its SFT term reads that teacher's outputs on the
-  20,000 studies of `cxr_report`. The reasoning teacher is close to the student and needs no SFT.
-- `grpo` trains with two sequences per GPU, since 2,048-token samples share the first GPU with the metric server.
+The `overrides` block of the task file gives `grpo` two sequences per GPU, since 2,048-token samples share the
+first GPU with the metric server.
 
 `chord` and `two_stage` read the outputs of both teachers by default. Two recipes give them the report teacher's
-outputs only, the same data AdaOPD reads:
+outputs on the 20,000 studies of `cxr_report` instead, for a student that needs the SFT term on that teacher only:
 
 ```bash
-medres train --task cxr_report_vqa --method adaopd --seed 42
-medres train configs/recipes/adaopd/cxr_report_vqa_chord_report.yaml --seed 42
-medres train configs/recipes/adaopd/cxr_report_vqa_two_stage_report.yaml --seed 42
-medres eval run --task cxr_report_vqa --model runs/cxr_report_vqa_adaopd_s42/checkpoint-300 --green
+medres train --task cxr_report_vqa --method chord --seed 42
+medres train configs/recipes/benchmark/cxr_report_vqa_chord_report.yaml --seed 42
+medres train configs/recipes/benchmark/cxr_report_vqa_two_stage_report.yaml --seed 42
+medres eval run --task cxr_report_vqa --model runs/cxr_report_vqa_chord_s42/checkpoint-300 --green
 ```
 
 ## `modality_experts`: eight experts, one student
@@ -120,17 +116,14 @@ of 128 sequences and a response limit of 512 tokens.
 |:--|:--|
 | `train.jsonl` | the training questions, each tagged with the expert of its modality |
 | `train_teacher.jsonl` | the experts' answers to them, one sample at temperature 1 |
-| `train_teacher_far.jsonl` | the answers of the CT, MRI and ultrasound experts only |
 | `test.jsonl` | the test questions, with the modality as `domain` |
 
-Three experts are far from the base model and five are close (`medres probe gap`). The `overrides.adaopd` block
-therefore measures the gap on CT, MRI and ultrasound and replays the outputs of these three. The other overrides
-set stage 1 of `two_stage` to 200 steps, so that both stages end on a checkpoint, and add ms-swift's `format` reward
-to `grpo`, as Med-R1 does.
+The `overrides` block of the task file sets stage 1 of `two_stage` to 200 steps, so that both stages end on a
+checkpoint, and adds ms-swift's `format` reward to `grpo`, as Med-R1 does.
 
 ```bash
-medres train --task modality_experts --method adaopd --seed 42
-medres eval run --task modality_experts --model runs/modality_experts_adaopd_s42/checkpoint-500
+medres train --task modality_experts --method opd --seed 42
+medres eval run --task modality_experts --model runs/modality_experts_opd_s42/checkpoint-500
 ```
 
 The accuracy is reported per modality and as micro and macro averages.
@@ -138,19 +131,18 @@ The accuracy is reported per modality and as micro and macro averages.
 ## Recipes
 
 A recipe is a run that is more than a task and a method. The ones behind the benchmark are in
-`configs/recipes/adaopd/`:
+`configs/recipes/benchmark/`:
 
 | Recipe | What it changes |
 |:--|:--|
 | `cxr_report_4b.yaml` | `cxr_report` with Qwen3-VL-4B as the student; names no method, add `--method` |
-| `cxr_report_4b_adaopd.yaml` | AdaOPD for that student, with the threshold validation selected for it (τ = 0) |
 | `cxr_report_vqa_chord_report.yaml` | CHORD on two teachers, replaying the report teacher only |
 | `cxr_report_vqa_two_stage_report.yaml` | two-stage on two teachers, stage 1 on the report teacher only |
 | `new_teacher.yaml` | `cxr_report_vqa` starting from a student already trained on `med_vqa`; add `--method` |
 
 ```bash
-medres train configs/recipes/adaopd/cxr_report_4b.yaml --method gkd --seed 42
-medres train configs/recipes/adaopd/new_teacher.yaml --method adaopd --seed 42
+medres train configs/recipes/benchmark/cxr_report_4b.yaml --method gkd --seed 42
+medres train configs/recipes/benchmark/new_teacher.yaml --method chord --seed 42
 ```
 
 `new_teacher.yaml` starts from `runs/med_vqa_opd_s42/checkpoint-300`. For another seed, point `student.init` to the
